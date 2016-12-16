@@ -3,4 +3,5 @@
     <name>template-banking-anypointbank-experience-api</name>
     <description></description>
     <muleExtension name="APIkit" qualifier="org.mule.tooling.apikit.3.7.0"/>
+    <muleExtension name="ObjectStore" qualifier="org.mule.tooling.ui.contribution.objectstore.3.6.0"/>
 </mule-project>

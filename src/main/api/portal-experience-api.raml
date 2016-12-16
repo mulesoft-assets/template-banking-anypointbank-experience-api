@@ -48,10 +48,10 @@ baseUri: http://localhost:8081/api/
         body:
           application/json:
             example: !include onboarding/signup-error-response.json 
-/user/{userid}:
+/user/{userId}:
   uriParameters:
-    userid:
-      type: string
+    userId:
+      type: string | integer
       description: User ID
   /settings:
     displayName: User info
@@ -81,6 +81,13 @@ baseUri: http://localhost:8081/api/
             application/json:
               example: !include accounts-response.json
   /transactions/bank/{bankId}/account/{accountId}:
+    uriParameters:
+      accountId:
+        type: string | integer
+        description: Account ID
+      bankId:
+        type: string | integer
+        description: Bank ID
     displayName: Get transaction history of account of user 
     get:
       description: Get transaction history of account of user from AISP interfaces of banks
@@ -90,6 +97,10 @@ baseUri: http://localhost:8081/api/
             application/json:
               example: !include transactions-response.json
   /register/bank/{bankId}:
+    uriParameters:
+      bankId:
+        type: string | integer
+        description: Bank ID
     displayName: Register User using code retrieved from Auth Server
     post:
       description: Finish security dance with Auth Server using user's code and clientId and secret of registered app

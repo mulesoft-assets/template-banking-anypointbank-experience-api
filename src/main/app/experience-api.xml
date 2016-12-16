@@ -1,87 +1,101 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<mule 
-	xmlns:context="http://www.springframework.org/schema/context"
-	xmlns:tls="http://www.mulesoft.org/schema/mule/tls" 
-	xmlns:api-platform-gw="http://www.mulesoft.org/schema/mule/api-platform-gw" 
-	xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" 
-	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" 
-	xmlns="http://www.mulesoft.org/schema/mule/core" 
-	xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" 
-	xmlns:http="http://www.mulesoft.org/schema/mule/http" 
-	xmlns:spring="http://www.springframework.org/schema/beans" 
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-	xsi:schemaLocation="http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd
+<mule xmlns:objectstore="http://www.mulesoft.org/schema/mule/objectstore" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:api-platform-gw="http://www.mulesoft.org/schema/mule/api-platform-gw" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns:context="http://www.springframework.org/schema/context" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/api-platform-gw http://www.mulesoft.org/schema/mule/api-platform-gw/current/mule-api-platform-gw.xsd
-http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd" >
-
-	
-	<api-platform-gw:api id="${api.id}" apiName="${api.name}" version="${api.version}" flowRef="experience-apiFlow" doc:name="API Autodiscovery" create="true"></api-platform-gw:api>
-    
-    <context:property-placeholder location="common.properties, mule.${mule.env}.properties"/>
-    
-    <http:listener-config name="api-listener" host="0.0.0.0" port="${https.port}" doc:name="HTTP Listener Configuration" protocol="HTTPS">
-        <tls:context>
-            <tls:key-store type="jks" path="${keystore.location}" alias="${key.alias}" keyPassword="${key.password}" password="${keystore.password}"/>
-        </tls:context>
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/objectstore http://www.mulesoft.org/schema/mule/objectstore/current/mule-objectstore.xsd">
+    <api-platform-gw:api id="${api.id}" apiName="${api.name}" version="${api.version}" flowRef="experience-apiFlow" doc:name="API Autodiscovery" create="true" />
+    <context:property-placeholder location="common.properties, mule.${mule.env}.properties" />
+    <http:listener-config name="api-listener" host="0.0.0.0" port="${http.port}" doc:name="HTTP Listener Configuration" >
+        <!-- tls:context>
+            <tls:key-store type="jks" path="${keystore.location}" alias="${key.alias}" keyPassword="${key.password}" password="${keystore.password}" />
+        </tls:context -->
     </http:listener-config>
-    
-<!--     <api-platform-gw:api id="${api.id}" apiName="${api.name}" version="${api.version}" flowRef="api-main" doc:name="API Autodiscovery"></api-platform-gw:api> -->
-
-
-    <apikit:config name="api-config" raml="portal-experience-api.raml" consoleEnabled="true" consolePath="console" doc:name="Router" keepRamlBaseUri="false"/>
-    
+    <!--     <api-platform-gw:api id="${api.id}" apiName="${api.name}" version="${api.version}" flowRef="api-main" doc:name="API Autodiscovery"></api-platform-gw:api> -->
+    <apikit:config name="api-config" raml="portal-experience-api.raml" consoleEnabled="true" consolePath="console" doc:name="Router" />
+    <http:request-config name="HTTP_Bank_Token_Request_Configuration" protocol="HTTPS" host="#[flowVars.bankVar.host]" port="#[flowVars.bankVar.port]" basePath="#[flowVars.bankVar.basePath]" doc:name="HTTP Request Configuration"/>
+    <objectstore:config name="UserToken__Configuration" partition="userTokenPartition" persistent="true" doc:name="ObjectStore: Configuration"/>
     <flow name="experience-apiFlow">
-        <http:listener config-ref="api-listener" path="/api/*" doc:name="HTTP"/>
-        <logger message="#[message.inboundProperties.'http.method'] #[message.inboundProperties.'http.request.uri' + message.inboundProperties.'http.query.string'] #[&quot;\n&quot; + message.payloadAs(java.lang.String)]" level="INFO" doc:name="Log request"/>
-        <apikit:router config-ref="api-config" doc:name="APIkit Router"/>
-        <exception-strategy ref="api-apiKitGlobalExceptionMapping" doc:name="Reference Exception Strategy"/>
+        <http:listener config-ref="api-listener" path="/api/*" doc:name="HTTP" />
+        <logger message="#[message.inboundProperties.'http.method'] #[message.inboundProperties.'http.request.uri' + message.inboundProperties.'http.query.string'] #[&quot;\n&quot; + message.payloadAs(java.lang.String)]" level="INFO" doc:name="Log request" />
+        <apikit:router config-ref="api-config" doc:name="APIkit Router" />
+        <exception-strategy ref="api-apiKitGlobalExceptionMapping" doc:name="Reference Exception Strategy" />
     </flow>
-    
-    
+
+    <flow name="post:/user/{userId}/register/bank/{bankId}:api-config">
+        <dw:transform-message doc:name="Transform properties to bankVar based on bankId">
+            <dw:set-variable variableName="bankVar"><![CDATA[%dw 1.0
+%output application/java
+---
+read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-variable>
+        </dw:transform-message>
+        <set-variable variableName="tokenVar" value="${userToken}" doc:name="Set token from AS to tokenVar"/>
+        <objectstore:store config-ref="UserToken__Configuration" key="#[flowVars.userId + '_' + flowVars.bankId]" value-ref="#[flowVars.tokenVar]" overwrite="true" doc:name="Store user's token"/>
+
+    </flow>
+    <sub-flow name="obtainAccessTokenFlow">
+        <logger message="Preparing request for obtaining token from #[flowVars.bankVar.name] and user id #[flowVars.userId]" level="INFO" doc:name="Log input data for token registration"/>
+        <dw:transform-message doc:name="Prepare get token request">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+{
+	"code" : payload.code,
+	"client_id" : flowVars.bankVar.clientId,
+	"client_secret" : flowVars.bankVar.clientSecret,
+	"grant_type" : "authorization_code"
+}
+]]></dw:set-payload>
+        </dw:transform-message>
+        <http:request config-ref="HTTP_Bank_Token_Request_Configuration" path="#[flowVars.bankVar.path]" method="POST" doc:name="Obtain token from AS">
+            <http:request-builder>
+                <http:header headerName="Content-Type" value="application/x-www-form-urlencoded"/>
+            </http:request-builder>
+        </http:request>
+        <set-variable variableName="tokenVar" value="#[payload.token]" doc:name="Set token from AS to tokenVar"/>
+        <logger message="Received token #[payload.token]" level="INFO" doc:name="Log token"/>
+    </sub-flow>
+
     <apikit:mapping-exception-strategy name="api-apiKitGlobalExceptionMapping">
-    
         <apikit:mapping statusCode="401">
             <apikit:exception value="org.mule.api.security.UnauthorisedException" />
-            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
-            <set-payload value="{ &quot;message&quot;: &quot;Unauthorized&quot; ,&quot;service&quot; : &quot;clinicalData&quot;}" doc:name="Set Payload"/>
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Unauthorized&quot; ,&quot;service&quot; : &quot;clinicalData&quot;}" doc:name="Set Payload" />
         </apikit:mapping>
         <apikit:mapping statusCode="404">
             <apikit:exception value="org.mule.module.apikit.exception.NotFoundException" />
-            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
-            <set-payload value="{ &quot;message&quot;: &quot;Resource not found&quot;,&quot;service&quot; : &quot;clinicalData&quot; }" doc:name="Set Payload"/>
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Resource not found&quot;,&quot;service&quot; : &quot;clinicalData&quot; }" doc:name="Set Payload" />
         </apikit:mapping>
         <apikit:mapping statusCode="405">
             <apikit:exception value="org.mule.module.apikit.exception.MethodNotAllowedException" />
-            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
-            <set-payload value="{ &quot;message&quot;: &quot;Method not allowed&quot;,&quot;service&quot; : &quot;clinicalData&quot; }" doc:name="Set Payload"/>
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Method not allowed&quot;,&quot;service&quot; : &quot;clinicalData&quot; }" doc:name="Set Payload" />
         </apikit:mapping>
         <apikit:mapping statusCode="415">
             <apikit:exception value="org.mule.module.apikit.exception.UnsupportedMediaTypeException" />
-            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
-            <set-payload value="{ &quot;message&quot;: &quot;Unsupported media type&quot; ,&quot;service&quot; : &quot;clinicalData&quot;}" doc:name="Set Payload"/>
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Unsupported media type&quot; ,&quot;service&quot; : &quot;clinicalData&quot;}" doc:name="Set Payload" />
         </apikit:mapping>
         <apikit:mapping statusCode="406">
             <apikit:exception value="org.mule.module.apikit.exception.NotAcceptableException" />
-            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
-            <set-payload value="{ &quot;message&quot;: &quot;Not acceptable&quot; ,&quot;service&quot; : &quot;clinicalData&quot;}" doc:name="Set Payload"/>
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Not acceptable&quot; ,&quot;service&quot; : &quot;clinicalData&quot;}" doc:name="Set Payload" />
         </apikit:mapping>
         <apikit:mapping statusCode="400">
             <apikit:exception value="org.mule.module.apikit.exception.BadRequestException" />
-            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
-            <set-payload value="{ &quot;message&quot;: &quot;Bad request&quot; ,&quot;service&quot; : &quot;clinicalData&quot;}" doc:name="Set Payload"/>
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Bad request&quot; ,&quot;service&quot; : &quot;clinicalData&quot;}" doc:name="Set Payload" />
         </apikit:mapping>
         <apikit:mapping statusCode="500">
-            <apikit:exception value="java.lang.Exception"/>
-            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
-            <set-payload value="{&quot;message&quot; : &quot;Internal Server Error&quot;,&quot;service&quot; : &quot;clinicalData&quot;, &quot;reason&quot; : &quot;#[exception.getSummaryMessage()]&quot;}" doc:name="Set Payload"/>
+            <apikit:exception value="java.lang.Exception" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{&quot;message&quot; : &quot;Internal Server Error&quot;,&quot;service&quot; : &quot;clinicalData&quot;, &quot;reason&quot; : &quot;#[exception.getSummaryMessage()]&quot;}" doc:name="Set Payload" />
         </apikit:mapping>
     </apikit:mapping-exception-strategy>
-   
-
-
 </mule>
