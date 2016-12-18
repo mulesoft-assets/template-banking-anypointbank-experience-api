@@ -20,6 +20,12 @@ http://www.mulesoft.org/schema/mule/objectstore http://www.mulesoft.org/schema/m
     <apikit:config name="api-config" raml="portal-experience-api.raml" consoleEnabled="true" consolePath="console" doc:name="Router" />
     <http:request-config name="HTTP_Bank_Token_Request_Configuration" protocol="HTTPS" host="#[flowVars.bankVar.host]" port="#[flowVars.bankVar.port]" basePath="#[flowVars.bankVar.basePath]" doc:name="HTTP Request Configuration"/>
     <objectstore:config name="UserToken__Configuration" partition="userTokenPartition" persistent="true" doc:name="ObjectStore: Configuration"/>
+    <http:request-config name="HTTP_Bank_AISP_Request_Configuration" host="#[flowVars.bankVar.aispHost]" port="#[flowVars.bankVar.aispPort]" basePath="#[flowVars.bankVar.aispBasePath]" doc:name="HTTP Request Configuration" protocol="HTTPS">
+        <tls:context>
+            <tls:trust-store path="${truststore.location}" password="${truststore.password}" insecure="true"/>
+        </tls:context>
+        <http:raml-api-configuration location="aisp-experience-api/banking-aisp-experience-api.raml"/>
+    </http:request-config>
     <flow name="experience-apiFlow">
         <http:listener config-ref="api-listener" path="/api/*" doc:name="HTTP" />
         <logger message="#[message.inboundProperties.'http.method'] #[message.inboundProperties.'http.request.uri' + message.inboundProperties.'http.query.string'] #[&quot;\n&quot; + message.payloadAs(java.lang.String)]" level="INFO" doc:name="Log request" />

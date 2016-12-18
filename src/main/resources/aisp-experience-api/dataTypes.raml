@@ -1,0 +1,52 @@
+currency:
+  type: string
+  enum: [USD, EUR, CHF, GBP, CZK, PLN, HUF, HRK, BGN, SEK, RON, DKK]
+
+amount:
+  type: number
+  format: double
+
+unixTimestamp:
+  type: number
+  format: long
+  example: 1475239204
+
+transactionType:
+  type: string
+  enum: [atm, charge, check, deposit, online, pos, sepa_direct_transfer, withdrawal]
+
+accountBalance:
+  type: object
+  properties:
+    number: string
+    currency: currency
+    balance: amount
+    available: amount
+
+account:
+  type: object
+  properties:
+    id: string
+    label: string
+    number: string
+    currency: currency
+    type: string
+    owners?: string
+    IBAN:
+      pattern: ^[a-zA-Z]{2}[0-9]{2}[a-zA-Z0-9]{4}[0-9]{7}([a-zA-Z0-9]?){0,16}$
+    overdraft: boolean
+    bank_id: string
+    created_at: unixTimestamp
+    updated_at: unixTimestamp
+
+accountTransaction:
+  type: object
+  properties:
+    id: string
+    account_id: string
+    type: transactionType    
+    description: string
+    posted: unixTimestamp
+    completed: unixTimestamp
+    amount: amount
+    currency: currency

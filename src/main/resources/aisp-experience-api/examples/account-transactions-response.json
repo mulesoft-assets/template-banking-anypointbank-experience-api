@@ -1,0 +1,10 @@
+{
+  "id": "6fd5f219-d1e4-449e-ba52-d39358f7a732",
+  "account_id": "xxxxxxxxxxx4358",
+  "type": "sepa_direct_transfer",
+  "description": "Rent",
+  "posted": 1475238382,
+  "completed": 1475238932,
+  "amount": 205.00,
+  "currency": "GBP"
+}

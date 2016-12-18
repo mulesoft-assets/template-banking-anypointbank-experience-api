@@ -1,0 +1,15 @@
+oauth_2_0:
+  description: |
+    Supports OAuth 2.0 for authenticating all API requests.
+  type: OAuth 2.0
+  describedBy:
+    headers:
+      Authorization:
+        description: |
+           Used to send a valid OAuth 2 JWT token containing the information about the accounts
+        type: string
+
+  settings:
+      authorizationUri: https://financial-services-auth.cloudhub.io/api/v1/oauth2/authorize
+      accessTokenUri: https://financial-services-auth.cloudhub.io/api/v1/oauth2/token
+      authorizationGrants: [ authorization_code, implicit ]

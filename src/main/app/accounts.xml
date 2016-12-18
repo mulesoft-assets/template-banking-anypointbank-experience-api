@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:objectstore="http://www.mulesoft.org/schema/mule/objectstore" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/objectstore http://www.mulesoft.org/schema/mule/objectstore/current/mule-objectstore.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
+	<flow name="get:/user/{userId}/accounts:api-config">
+        <set-variable variableName="response" value="#[[]]" doc:name="set response variable"/>
+        <foreach collection="#[(${registered.banks}).keySet()]" counterVariableName="bankCounter" doc:name="For Each Bank">
+            <set-variable variableName="bankId" value="#[payload]" doc:name="set bankId variable"/>
+            <dw:transform-message doc:name="Transform properties to bankVar based on bankId">
+                <dw:set-variable variableName="bankVar"><![CDATA[%dw 1.0
+%output application/java
+---
+read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-variable>
+            </dw:transform-message>
+            <objectstore:contains config-ref="UserToken__Configuration" key="#[flowVars.userId + '_' + flowVars.bankId]" doc:name="Get contains token for bank"/>
+            <choice doc:name="Contains token for bank?">
+                <when expression="payload == true">
+                    <logger message="Getting accounts for user '#[flowVars.userId]' in bank '#[flowVars.bankId]'" level="INFO" doc:name="Log process"/>
+                    <objectstore:retrieve config-ref="UserToken__Configuration" key="#[flowVars.userId + '_' + flowVars.bankId]" targetProperty="token" doc:name="Get token"/>
+                    <http:request config-ref="HTTP_Bank_AISP_Request_Configuration" path="/info" method="GET" doc:name="Get accounts info">
+                        <http:request-builder>
+                            <http:header headerName="Authorization" value="Bearer #[flowVars.token]"/>
+                        </http:request-builder>
+                    </http:request>
+                    <dw:transform-message doc:name="Prepare accounts response">
+                        <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+payload map {
+	accountId: $.id,
+	bankId: flowVars.bankId,
+	bankName: flowVars.bankVar.name,
+	type: $.type
+}]]></dw:set-payload>
+                    </dw:transform-message>
+                    <enricher source="#[payload]" target="#[flowVars.accountsBalance]" doc:name="Store balance in accountsBalance variable">
+                        <processor-chain doc:name="Processor Chain">
+                            <http:request config-ref="HTTP_Bank_AISP_Request_Configuration" path="/balance" method="GET" doc:name="Get accounts balance">
+                                <http:request-builder>
+                                    <http:header headerName="Authorization" value="Bearer #[flowVars.token]"/>
+                                </http:request-builder>
+                            </http:request>
+                            <dw:transform-message doc:name="Transform to Java object">
+                                <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+payload]]></dw:set-payload>
+                            </dw:transform-message>
+                        </processor-chain>
+                    </enricher>
+                    <foreach collection="payload" counterVariableName="accountsCounter" rootMessageVariableName="origAccountsResponse" doc:name="For each account in response">
+                        <dw:transform-message doc:name="Add amount info">
+                            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+%var account = (flowVars.accountsBalance filter $.account_id == payload.accountId)[0] default null
+---
+payload ++ {amount: (account.balance default "-") ++ ((" " ++ account.currency) default "")}]]></dw:set-payload>
+                        </dw:transform-message>
+                        <expression-component doc:name="Set updated account to original payload"><![CDATA[origAccountsResponse.payload[accountsCounter-1] = payload]]></expression-component>
+                    </foreach>
+                    <enricher source="#[payload]" target="#[flowVars.accountsTransactions]" doc:name="Store balance in accountsTransactions variable">
+                        <processor-chain doc:name="Processor Chain">
+                            <http:request config-ref="HTTP_Bank_AISP_Request_Configuration" path="/transactions" method="GET" doc:name="Get accounts transactions">
+                                <http:request-builder>
+                                    <http:header headerName="Authorization" value="Bearer #[flowVars.token]"/>
+                                </http:request-builder>
+                            </http:request>
+                            <dw:transform-message doc:name="Transform to Java object">
+                                <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+payload]]></dw:set-payload>
+                            </dw:transform-message>
+                        </processor-chain>
+                    </enricher>
+                    <foreach collection="#[payload]" counterVariableName="accountsCounter" rootMessageVariableName="origAccountsResponse" doc:name="For each account in response">
+                        <dw:transform-message doc:name="Add last transaction info">
+                            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+%var lastTransaction = ((flowVars.accountsTransactions filter $.account_id == payload.accountId) orderBy $.completed)[-1] default null
+---
+payload ++ {lastTransactionDate: lastTransaction.completed default ""}]]></dw:set-payload>
+                        </dw:transform-message>
+                        <expression-component doc:name="Set updated account to original payload"><![CDATA[origAccountsResponse.payload[accountsCounter-1] = payload]]></expression-component>
+                    </foreach>
+                    <dw:transform-message doc:name="Add accounts response to response">
+                        <dw:set-variable variableName="response"><![CDATA[%dw 1.0
+%output application/java
+---
+flowVars.response ++ payload]]></dw:set-variable>
+                    </dw:transform-message>
+                </when>
+                <otherwise>
+                    <logger message="Bank '#[flowVars.bankId]' not linked with user '#[flowVars.userId]'" level="INFO" doc:name="Log not linked"/>
+                </otherwise>
+            </choice>
+        </foreach>
+        <dw:transform-message doc:name="Prepare response">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+flowVars.response]]></dw:set-payload>
+        </dw:transform-message>
+        <logger message="#[message.inboundProperties.'http.host' + message.inboundProperties.'http.request.uri'] has finished processing." level="INFO" doc:name="Log success"/>
+    </flow>
+</mule>

@@ -1,0 +1,13 @@
+{
+  "id": "e14298e8-86eb-11e6-ae22-56b6b6499611",
+  "label": "account label",
+  "number": "31926819",
+  "currency": "GBP",
+  "type": "CHECKING",
+  "owners": "",
+  "IBAN": "GB29NWBK60161331926819",
+  "overdraft": false,
+  "bank_id": "gh.10.uk",
+  "created_at": 1475238382,
+  "updated_at": 1475238382
+}
