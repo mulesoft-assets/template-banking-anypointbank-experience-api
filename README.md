@@ -1,9 +1,8 @@
-# Template Bankin AnypointBank Experience API
+# Template Banking AnypointBank Experience API
 
 + [License Agreement](#licenseagreement)
 + [Use Case](#usecase)
 + [Considerations](#considerations)
-	* [Cloudhub security considerations](#cloudhubsecurityconsiderations)
 	* [APIs security considerations](#apissecurityconsiderations)
 + [Run it!](#runit)
 	* [Running on premise](#runonopremise)
@@ -20,21 +19,17 @@ Please review the terms of the license before downloading and using this templat
 
 # Use Case <a name="usecase"/>
 
+As a Portal User I want a service to request Banking information about my Accounts and Transactions. 
 
 # Considerations <a name="considerations"/>
 
 To make this Anypoint Template run, there are certain preconditions that must be considered. **Failling to do so could lead to unexpected behavior of the template.**
 
-## Cloudhub security considerations <a name="cloudhubsecurityconsiderations"/>
-
-
 ## APIs security considerations <a name="apissecurityconsiderations"/>
 This Experience API is meant to be deployed to CloudHub and managed using the API Platform Manager.
 
 ### Exposing external endpoints with HTTPS and basic authentication
-
-
-### Exposing internal endpoints with RAML and HTTPS
++ It is triggered by Anypoint Banking Portal using HTTPS
 
 
 # Run it! <a name="runit"/>
@@ -85,14 +80,66 @@ Mule Studio provides you with really easy way to deploy your Template directly t
 When a Mule application is deployed using the Mule API Gateway Runtime, the API Platform allows to dinamically apply different policies that can be used for securizing the application, among many other cases. More information can be found in [Anypoint Platform for APIs](https://docs.mulesoft.com/anypoint-platform-for-apis/applying-runtime-policies)
 
 ## Properties to be configured (With examples) <a name="propertiestobeconfigured"/>
-In order to use this Mule Anypoint Template you need to configure properties (Credentials, configurations, etc.) either in properties file or in CloudHub as Environment Variables. Detailed list with examples:
+In order to use this Mule Anypoint Template you need to configure properties (Credentials, configurations, etc.) either in properties file or in CloudHub as Environment Variables. It's necessary to register your Banking Experience API to desired Bank to obtain client_id, client_secret and endpoind URIs.    
+Detailed list with examples:
 ### Application properties
 
 ####HTTPS configuration
++ https.port `8082` 
++ keystore.location `keystore.jks` 
++ keystore.password `pass123!`
++ key.password `pass123!`
++ key.alias `1`
++ truststore.location `truestore` 
++ truststore.password `true123`
 
 ####API auto-discovery
++ api.id `123`
++ api.name `example-api`
++ api.version `v1` 
 
 ####API Platform Organization
++ anypoint.platform.client_id `cloudhub_client_id` 
++ anypoint.platform.client_secret `cloudhub_client_secret` 
 
 ####API calls configuration
-
++ registered.banks 	`{"1":\
+						{\
+							"name": "Anypoint Bank",\
+							"clienId": "clientIdOfAnypointBank",\
+							"clientSecret": "clientSecretOfAnypointBank",\
+							"host" :"anypointBankAShost",\
+							"port" : "anypointBankPort",\
+							"basePath" : "anypointBankBasePath",\
+							"path": "anypointBankASTokenUri",\
+							"aispHost" :"anypointBankAispHost",\
+							"aispPort" : "anypointBankAispPort",\
+							"aispBasePath" : "anypointBankAispBasePath"\
+						},\
+					"2":\
+						{\
+							"name": "Chase",\
+							"clienId": "clientIdOfChase",\
+							"clientSecret": "clientSecretOfChase",\
+							"host" :"chaseAShost",\
+							"port" : "chasePort",\
+							"basePath" : "chaseBasePath",\
+							"path": "chaseASTokenUri",\
+							"aispHost" :"chaseBankAispHost",\
+							"aispPort" : "chaseBankAispPort",\
+							"aispBasePath" : "chaseBankAispBasePath"\
+						},\
+					"3":\
+						{\
+							"name": "Union Bank",\
+							"clienId": "clientIdOfUnionBank",\
+							"clientSecret": "clientSecretOfUnionBank",\
+							"host" :"unionBankAShost",\
+							"port" : "unionBankPort",\
+							"basePath" : "unionBankBasePath",\
+							"path": "unionBankASTokenUri",\
+							"aispHost" :"unionBankAispHost",\
+							"aispPort" : "unionBankAispPort",\
+							"aispBasePath" : "unionBankAispBasePath"\
+						}\
+				}`
