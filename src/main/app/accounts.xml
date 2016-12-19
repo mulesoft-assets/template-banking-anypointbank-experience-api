@@ -113,4 +113,44 @@ flowVars.response]]></dw:set-payload>
         </dw:transform-message>
         <logger message="#[message.inboundProperties.'http.host' + message.inboundProperties.'http.request.uri'] has finished processing." level="INFO" doc:name="Log success"/>
     </flow>
+    <flow name="get:/user/{userId}/transactions/bank/{bankId}/account/{accountId}">
+        <dw:transform-message doc:name="read bankVar">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-payload>
+            <dw:set-variable variableName="bankVar"><![CDATA[%dw 1.0
+%output application/java
+---
+read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-variable>
+        </dw:transform-message>
+        <objectstore:contains config-ref="UserToken__Configuration" key="#[flowVars.userId + '_' + flowVars.bankId]" doc:name="check token for bank"/>
+        <choice doc:name="Does the token exist?">
+            <when expression="#[payload == true]">
+                <objectstore:retrieve config-ref="UserToken__Configuration" key="#[flowVars.userId + '_' + flowVars.bankId]" targetProperty="token" doc:name="Get token"/>
+                <http:request config-ref="HTTP_Bank_AISP_Request_Configuration" path="/transactions" method="GET" doc:name="Get user transactions">
+                    <http:request-builder>
+                        <http:header headerName="Authorization" value="Bearer #[flowVars.token]"/>
+                    </http:request-builder>
+                </http:request>
+                <dw:transform-message doc:name="output">
+                    <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+payload filter ($.account_id == flowVars.accountId) map {
+	description     : $.description,
+	amount          : $.amount,
+	currency        : $.currency,
+	balance         : "treba pridat do AISP!!!",
+	transactionDate : $.completed,
+	isIncome        : not ($.amount startsWith '-')
+}
+]]></dw:set-payload>
+                </dw:transform-message>
+            </when>
+            <otherwise>
+                <set-payload value="#[ [] ]" doc:name="No data"/>
+            </otherwise>
+        </choice>
+    </flow>
 </mule>
