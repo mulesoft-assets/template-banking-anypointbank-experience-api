@@ -103,7 +103,7 @@ Detailed list with examples:
 + anypoint.platform.client_secret `cloudhub_client_secret` 
 
 ####API calls configuration
-+ registered.banks 	`{"1":\
++ registered.banks 	``{"1":\
 						{\
 							"name": "Anypoint Bank",\
 							"clienId": "clientIdOfAnypointBank",\
@@ -142,4 +142,4 @@ Detailed list with examples:
 							"aispPort" : "unionBankAispPort",\
 							"aispBasePath" : "unionBankAispBasePath"\
 						}\
-				}`
+				}``
