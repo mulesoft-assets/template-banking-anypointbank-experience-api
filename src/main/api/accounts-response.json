@@ -11,7 +11,7 @@
       "bankName": "Bank of America",
       "bankId": "1",
       "accountId":  "e394a3c6-a234-4ebc-9552-1806fd1478c6",
-      "amount": "$13250",
+      "amount": "$12560",
       "type": "savings",
       "lastTransactionDate": "2016-10-23T14:30:00-05:00"
     },
@@ -19,7 +19,7 @@
       "bankName": "Chase",
       "bankId": "2",
       "accountId":  "cb0514d7-aaf5-4a0e-9827-75c001f4b417",
-      "amount": "$2560",
+      "amount": "$300",
       "type": "checking",
       "lastTransactionDate": "2016-06-10T10:27:00-05:00"
     },
@@ -27,7 +27,7 @@
       "bankName": "Chase",
       "bankId": "2",
       "accountId":  "cb0514d7-aaf5-4a0e-9827-75c001f4b417",
-      "amount": "$300",
+      "amount": "$2560",
       "type": "savings",
       "lastTransactionDate": "2016-06-10T10:27:00-05:00"
     },
