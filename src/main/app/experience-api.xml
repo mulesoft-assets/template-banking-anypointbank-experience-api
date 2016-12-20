@@ -9,7 +9,7 @@ http://www.mulesoft.org/schema/mule/api-platform-gw http://www.mulesoft.org/sche
 http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
 http://www.mulesoft.org/schema/mule/objectstore http://www.mulesoft.org/schema/mule/objectstore/current/mule-objectstore.xsd">
-    <api-platform-gw:api id="${api.id}" apiName="${api.name}" version="${api.version}" flowRef="experience-apiFlow" doc:name="API Autodiscovery" create="true" />
+<!--     <api-platform-gw:api id="${api.id}" apiName="${api.name}" version="${api.version}" flowRef="experience-apiFlow" doc:name="API Autodiscovery" create="true" /> -->
     <context:property-placeholder location="common.properties, mule.${mule.env}.properties" />
     <http:listener-config name="api-listener" host="0.0.0.0" port="${http.port}" doc:name="HTTP Listener Configuration" >
         <!-- tls:context>
@@ -25,6 +25,7 @@ http://www.mulesoft.org/schema/mule/objectstore http://www.mulesoft.org/schema/m
             <tls:trust-store path="${truststore.location}" password="${truststore.password}" insecure="true"/>
         </tls:context>
         <http:raml-api-configuration location="aisp-experience-api/banking-aisp-experience-api.raml"/>
+
     </http:request-config>
     <flow name="experience-apiFlow">
         <http:listener config-ref="api-listener" path="/api/*" doc:name="HTTP" />
@@ -41,6 +42,7 @@ http://www.mulesoft.org/schema/mule/objectstore http://www.mulesoft.org/schema/m
 read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-variable>
         </dw:transform-message>
         <set-variable variableName="tokenVar" value="${userToken}" doc:name="Set token from AS to tokenVar"/>
+        <logger message="token stored: #[flowVars.tokenVar]" level="INFO" doc:name="Logger"/>
         <objectstore:store config-ref="UserToken__Configuration" key="#[flowVars.userId + '_' + flowVars.bankId]" value-ref="#[flowVars.tokenVar]" overwrite="true" doc:name="Store user's token"/>
 
     </flow>
