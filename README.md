@@ -31,7 +31,6 @@ This Experience API is meant to be deployed to CloudHub and managed using the AP
 ### Exposing external endpoints with HTTPS and basic authentication
 + It is triggered by Anypoint Banking Portal using HTTPS
 
-
 # Run it! <a name="runit"/>
 Simple steps to get Banking AnypointBank Experience API running.
 See below.
@@ -103,7 +102,7 @@ Detailed list with examples:
 + anypoint.platform.client_secret `cloudhub_client_secret` 
 
 ####API calls configuration
-+ registered.banks 	``{"1":\
++ registered.banks 	```{"1":\
 						{\
 							"name": "Anypoint Bank",\
 							"clienId": "clientIdOfAnypointBank",\
@@ -142,4 +141,4 @@ Detailed list with examples:
 							"aispPort" : "unionBankAispPort",\
 							"aispBasePath" : "unionBankAispBasePath"\
 						}\
-				}``
+				}```
