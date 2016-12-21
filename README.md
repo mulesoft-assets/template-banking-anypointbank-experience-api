@@ -102,43 +102,29 @@ Detailed list with examples:
 + anypoint.platform.client_secret `cloudhub_client_secret` 
 
 ####API calls configuration
-+ registered.banks 	```{"1":\
-						{\
-							"name": "Anypoint Bank",\
-							"clienId": "clientIdOfAnypointBank",\
-							"clientSecret": "clientSecretOfAnypointBank",\
-							"host" :"anypointBankAShost",\
-							"port" : "anypointBankPort",\
-							"basePath" : "anypointBankBasePath",\
-							"path": "anypointBankASTokenUri",\
-							"aispHost" :"anypointBankAispHost",\
-							"aispPort" : "anypointBankAispPort",\
-							"aispBasePath" : "anypointBankAispBasePath"\
-						},\
-					"2":\
-						{\
-							"name": "Chase",\
-							"clienId": "clientIdOfChase",\
-							"clientSecret": "clientSecretOfChase",\
-							"host" :"chaseAShost",\
-							"port" : "chasePort",\
-							"basePath" : "chaseBasePath",\
-							"path": "chaseASTokenUri",\
-							"aispHost" :"chaseBankAispHost",\
-							"aispPort" : "chaseBankAispPort",\
-							"aispBasePath" : "chaseBankAispBasePath"\
-						},\
-					"3":\
-						{\
-							"name": "Union Bank",\
-							"clienId": "clientIdOfUnionBank",\
-							"clientSecret": "clientSecretOfUnionBank",\
-							"host" :"unionBankAShost",\
-							"port" : "unionBankPort",\
-							"basePath" : "unionBankBasePath",\
-							"path": "unionBankASTokenUri",\
-							"aispHost" :"unionBankAispHost",\
-							"aispPort" : "unionBankAispPort",\
-							"aispBasePath" : "unionBankAispBasePath"\
-						}\
-				}```
+registered.banks 	```{\
+	"1":\
+		{\
+			"name": "Anypoint Bank",\
+			"clienId": "client_id_of_anypoint_bank",\
+			"clientSecret": "client_secret_of_anypoint_bank",\
+			"asBaseURL" : "https://host:port/basePath", \
+			"aispBaseURL" : "https://host:port/basePath" \
+		},\
+	"2":\
+		{\
+			"name": "Chase",\
+			"clienId": "client_id_of_chase",\
+			"clientSecret": "client_secret_of_chase",\
+			"asBaseURL" : "https://host:port/basePath", \
+			"aispBaseURL" : "https://host:port/basePath" \
+		},\
+	"3":\
+		{\
+			"name": "Union Bank",\
+			"clienId": "client_id_of_union_bank",\
+			"clientSecret": "client_secret_of_union_bank",\
+			"asBaseURL" : "https://host:port/basePath", \
+			"aispBaseURL" : "https://host:port/basePath" \
+		}\
+}```

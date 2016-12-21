@@ -12,51 +12,12 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/objectstore http://www.mulesoft.org/schema/mule/objectstore/current/mule-objectstore.xsd
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
-    <flow name="get:/user/{userId}/transactions/bank/{bankId}/account/{accountId}">
-        <dw:transform-message doc:name="read bankVar">
-            <dw:set-payload><![CDATA[%dw 1.0
-%output application/java
----
-read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-payload>
-            <dw:set-variable variableName="bankVar"><![CDATA[%dw 1.0
-%output application/java
----
-read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-variable>
-        </dw:transform-message>
-        <objectstore:contains config-ref="UserToken__Configuration" key="#[flowVars.userId + '_' + flowVars.bankId]" doc:name="check token for bank"/>
-        <choice doc:name="Does the token exist?">
-            <when expression="#[payload == true]">
-                <objectstore:retrieve config-ref="UserToken__Configuration" key="#[flowVars.userId + '_' + flowVars.bankId]" targetProperty="token" doc:name="Get token"/>
-                <http:request config-ref="HTTP_Bank_AISP_Request_Configuration" path="/transactions" method="GET" doc:name="Get user transactions">
-                    <http:request-builder>
-                        <http:header headerName="Authorization" value="Bearer #[flowVars.token]"/>
-                    </http:request-builder>
-                </http:request>
-                <dw:transform-message doc:name="output">
-                    <dw:set-payload><![CDATA[%dw 1.0
-%output application/java
----
-payload filter ($.account_id == flowVars.accountId) map {
-	description     : $.description,
-	amount          : $.amount,
-	currency        : $.currency,
-	balance         : $.new_balance,
-	transactionDate : $.completed,
-	isIncome        : not ($.amount startsWith '-')
-}
-]]></dw:set-payload>
-                </dw:transform-message>
-            </when>
-            <otherwise>
-                <set-payload value="#[ [] ]" doc:name="No data"/>
-            </otherwise>
-        </choice>
-    </flow>
+    
     <flow name="get:/user/{userId}/accounts:api-config">
-        <set-variable variableName="response" value="#[[]]" doc:name="set response variable"/>
+        <set-variable variableName="response" value="#[[]]" doc:name="Initialize response variable"/>
         <foreach collection="#[(${registered.banks}).keySet()]" counterVariableName="bankCounter" doc:name="For Each Bank">
-            <set-variable variableName="bankId" value="#[payload]" doc:name="set bankId variable"/>
-            <dw:transform-message doc:name="load bank info">
+            <set-variable variableName="bankId" value="#[payload]" doc:name="Set bankId variable"/>
+            <dw:transform-message doc:name="Load bank info">
                 <dw:set-variable variableName="bankVar"><![CDATA[%dw 1.0
 %output application/java
 ---
@@ -89,7 +50,7 @@ read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-vari
                         </http:request>
                     </enricher>
 
-                    <dw:transform-message doc:name="build account Info">
+                    <dw:transform-message doc:name="Build account Info">
                         <dw:set-payload><![CDATA[%dw 1.0
 %output application/java
 ---
@@ -129,7 +90,7 @@ using (
 
 }]]></dw:set-payload>
                     </dw:transform-message>
-                    <dw:transform-message doc:name="add to response array">
+                    <dw:transform-message doc:name="Add to response array">
                         <dw:set-variable variableName="response"><![CDATA[%dw 1.0
 %output application/java
 ---

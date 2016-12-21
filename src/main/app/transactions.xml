@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:objectstore="http://www.mulesoft.org/schema/mule/objectstore"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" version="EE-3.8.2"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/objectstore http://www.mulesoft.org/schema/mule/objectstore/current/mule-objectstore.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+
+<flow name="get:/user/{userId}/transactions/bank/{bankId}/account/{accountId}:api-config">
+        <dw:transform-message doc:name="Read bankVar">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-payload>
+            <dw:set-variable variableName="bankVar"><![CDATA[%dw 1.0
+%output application/java
+---
+read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-variable>
+        </dw:transform-message>
+        <objectstore:contains config-ref="UserToken__Configuration" key="#[flowVars.userId + '_' + flowVars.bankId]" doc:name="Check token for bank"/>
+        <choice doc:name="Does the token exist?">
+            <when expression="#[payload == true]">
+                <objectstore:retrieve config-ref="UserToken__Configuration" key="#[flowVars.userId + '_' + flowVars.bankId]" targetProperty="token" doc:name="Get token"/>
+                <http:request config-ref="HTTP_Bank_AISP_Request_Configuration" path="/transactions" method="GET" doc:name="Get user's transactions">
+                    <http:request-builder>
+                        <http:header headerName="Authorization" value="Bearer #[flowVars.token]"/>
+                    </http:request-builder>
+                </http:request>
+                <dw:transform-message doc:name="Build output">
+                    <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+payload filter ($.account_id == flowVars.accountId) map {
+	description     : $.description,
+	amount          : $.amount,
+	currency        : $.currency,
+	balance         : $.new_balance,
+	transactionDate : $.completed,
+	isIncome        : not ($.amount startsWith '-')
+}
+]]></dw:set-payload>
+                </dw:transform-message>
+            </when>
+            <otherwise>
+                <set-payload value="#[ [] ]" doc:name="No data"/>
+            </otherwise>
+        </choice>
+    </flow>
+
+</mule>

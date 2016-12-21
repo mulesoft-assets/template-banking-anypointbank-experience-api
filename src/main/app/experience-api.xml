@@ -14,7 +14,10 @@ http://www.mulesoft.org/schema/mule/objectstore http://www.mulesoft.org/schema/m
     
     <context:property-placeholder location="common.properties, mule.${mule.env}.properties" />
     
-    <http:listener-config name="api-listener" host="0.0.0.0" port="${http.port}" doc:name="HTTP Listener Configuration" >
+    <http:listener-config protocol="HTTPS" name="api-listener" host="0.0.0.0" port="${https.port}" doc:name="HTTP Listener Configuration" >
+        <tls:context>
+            <tls:key-store type="jks" path="${keystore.location}" alias="${key.alias}" keyPassword="${key.password}" password="${keystore.password}"/>
+        </tls:context>
         <!-- tls:context>
             <tls:key-store type="jks" path="${keystore.location}" alias="${key.alias}" keyPassword="${key.password}" password="${keystore.password}" />
         </tls:context -->
@@ -22,16 +25,18 @@ http://www.mulesoft.org/schema/mule/objectstore http://www.mulesoft.org/schema/m
     
     <apikit:config name="api-config" raml="portal-experience-api.raml" consoleEnabled="true" consolePath="console" doc:name="Router" />
    
-    <http:request-config name="HTTP_Bank_Token_Request_Configuration" protocol="HTTPS" host="#[flowVars.bankVar.host]" port="#[flowVars.bankVar.port]" basePath="#[flowVars.bankVar.basePath]" doc:name="HTTP Request Configuration"/>
+    <http:request-config name="HTTP_Bank_Token_Request_Configuration" protocol="HTTPS" host="#[new URL(flowVars.bankVar.asBaseURL).getHost()]" port="#[new URL(flowVars.bankVar.asBaseURL).getPort()]" basePath="#[new URL(flowVars.bankVar.asBaseURL).getPath()]" doc:name="HTTP Request Configuration"/>
   
     <objectstore:config name="UserToken__Configuration" partition="userTokenPartition" persistent="true" doc:name="ObjectStore: Configuration"/>
    
-    <http:request-config name="HTTP_Bank_AISP_Request_Configuration" host="#[flowVars.bankVar.aispHost]" port="#[flowVars.bankVar.aispPort]" basePath="#[flowVars.bankVar.aispBasePath]" doc:name="HTTP Request Configuration" protocol="HTTPS">
+    <http:request-config name="HTTP_Bank_AISP_Request_Configuration" host="#[new URL(flowVars.bankVar.aispBaseURL).getHost()]" port="#[new URL(flowVars.bankVar.aispBaseURL).getPort()]" basePath="#[new URL(flowVars.bankVar.aispBaseURL).getPath()]" doc:name="HTTP Request Configuration" protocol="HTTPS">
         <tls:context>
             <tls:trust-store path="${truststore.location}" password="${truststore.password}" insecure="true"/>
         </tls:context>
         <http:raml-api-configuration location="aisp-experience-api/banking-aisp-experience-api.raml"/>
+
     </http:request-config>
+    <http:listener-config name="test_config" host="0.0.0.0" port="8085" basePath="/api" doc:name="HTTP Listener Configuration"/>
    
    
    
@@ -54,7 +59,7 @@ read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-vari
         <objectstore:store config-ref="UserToken__Configuration" key="#[flowVars.userId + '_' + flowVars.bankId]" value-ref="#[flowVars.tokenVar]" overwrite="true" doc:name="Store user's token"/>
 
     </flow>
-    <sub-flow name="obtainAccessTokenFlow">
+    <sub-flow name="obtainAccessTokenSubFlow">
         <logger message="Preparing request for obtaining token from #[flowVars.bankVar.name] and user id #[flowVars.userId]" level="INFO" doc:name="Log input data for token registration"/>
         <dw:transform-message doc:name="Prepare get token request">
             <dw:set-payload><![CDATA[%dw 1.0
@@ -68,7 +73,7 @@ read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-vari
 }
 ]]></dw:set-payload>
         </dw:transform-message>
-        <http:request config-ref="HTTP_Bank_Token_Request_Configuration" path="#[flowVars.bankVar.path]" method="POST" doc:name="Obtain token from AS">
+        <http:request config-ref="HTTP_Bank_Token_Request_Configuration" path="/token" method="POST" doc:name="Obtain token from AS">
             <http:request-builder>
                 <http:header headerName="Content-Type" value="application/x-www-form-urlencoded"/>
 
@@ -77,42 +82,47 @@ read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-vari
         <set-variable variableName="tokenVar" value="#[payload.token]" doc:name="Set token from AS to tokenVar"/>
         <logger message="Received token #[payload.token]" level="INFO" doc:name="Log token"/>
     </sub-flow>
+    <flow name="removeTokenFlow">
+        <http:listener config-ref="test_config" path="/clear" allowedMethods="GET" doc:name="localhost:8085/api/clear?bank=1&amp;user=1"/>
+        <objectstore:remove config-ref="UserToken__Configuration" key="#[message.inboundProperties.'http.query.params'.user + &quot;_&quot; + message.inboundProperties.'http.query.params'.bank]" ignoreNotExists="true" doc:name="Remove by key"/>
+        <set-payload value="Object under key #[message.inboundProperties.'http.query.params'.user + &quot;_&quot; + message.inboundProperties.'http.query.params'.bank] was removed!" doc:name="Response"/>
+    </flow>
 
     <apikit:mapping-exception-strategy name="api-apiKitGlobalExceptionMapping">
         <apikit:mapping statusCode="401">
             <apikit:exception value="org.mule.api.security.UnauthorisedException" />
             <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
-            <set-payload value="{ &quot;message&quot;: &quot;Unauthorized&quot; ,&quot;service&quot; : &quot;clinicalData&quot;}" doc:name="Set Payload" />
+            <set-payload value="{ &quot;message&quot;: &quot;Unauthorized&quot; ,&quot;service&quot; : &quot;AnypointBankExperienceAPI&quot;}" doc:name="Set Payload" />
         </apikit:mapping>
         <apikit:mapping statusCode="404">
             <apikit:exception value="org.mule.module.apikit.exception.NotFoundException" />
             <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
-            <set-payload value="{ &quot;message&quot;: &quot;Resource not found&quot;,&quot;service&quot; : &quot;clinicalData&quot; }" doc:name="Set Payload" />
+            <set-payload value="{ &quot;message&quot;: &quot;Resource not found&quot;,&quot;service&quot; : &quot;AnypointBankExperienceAPI&quot; }" doc:name="Set Payload" />
         </apikit:mapping>
         <apikit:mapping statusCode="405">
             <apikit:exception value="org.mule.module.apikit.exception.MethodNotAllowedException" />
             <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
-            <set-payload value="{ &quot;message&quot;: &quot;Method not allowed&quot;,&quot;service&quot; : &quot;clinicalData&quot; }" doc:name="Set Payload" />
+            <set-payload value="{ &quot;message&quot;: &quot;Method not allowed&quot;,&quot;service&quot; : &quot;AnypointBankExperienceAPI&quot; }" doc:name="Set Payload" />
         </apikit:mapping>
         <apikit:mapping statusCode="415">
             <apikit:exception value="org.mule.module.apikit.exception.UnsupportedMediaTypeException" />
             <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
-            <set-payload value="{ &quot;message&quot;: &quot;Unsupported media type&quot; ,&quot;service&quot; : &quot;clinicalData&quot;}" doc:name="Set Payload" />
+            <set-payload value="{ &quot;message&quot;: &quot;Unsupported media type&quot; ,&quot;service&quot; : &quot;AnypointBankExperienceAPI&quot;}" doc:name="Set Payload" />
         </apikit:mapping>
         <apikit:mapping statusCode="406">
             <apikit:exception value="org.mule.module.apikit.exception.NotAcceptableException" />
             <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
-            <set-payload value="{ &quot;message&quot;: &quot;Not acceptable&quot; ,&quot;service&quot; : &quot;clinicalData&quot;}" doc:name="Set Payload" />
+            <set-payload value="{ &quot;message&quot;: &quot;Not acceptable&quot; ,&quot;service&quot; : &quot;AnypointBankExperienceAPI&quot;}" doc:name="Set Payload" />
         </apikit:mapping>
         <apikit:mapping statusCode="400">
             <apikit:exception value="org.mule.module.apikit.exception.BadRequestException" />
             <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
-            <set-payload value="{ &quot;message&quot;: &quot;Bad request&quot; ,&quot;service&quot; : &quot;clinicalData&quot;}" doc:name="Set Payload" />
+            <set-payload value="{ &quot;message&quot;: &quot;Bad request&quot; ,&quot;service&quot; : &quot;AnypointBankExperienceAPI&quot;}" doc:name="Set Payload" />
         </apikit:mapping>
         <apikit:mapping statusCode="500">
             <apikit:exception value="java.lang.Exception" />
             <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
-            <set-payload value="{&quot;message&quot; : &quot;Internal Server Error&quot;,&quot;service&quot; : &quot;clinicalData&quot;, &quot;reason&quot; : &quot;#[exception.getSummaryMessage()]&quot;}" doc:name="Set Payload" />
+            <set-payload value="{&quot;message&quot; : &quot;Internal Server Error&quot;,&quot;service&quot; : &quot;AnypointBankExperienceAPI&quot;, &quot;reason&quot; : &quot;#[exception.getSummaryMessage()]&quot;}" doc:name="Set Payload" />
         </apikit:mapping>
     </apikit:mapping-exception-strategy>
 </mule>
