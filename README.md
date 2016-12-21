@@ -106,24 +106,24 @@ registered.banks 	```{\
 	"1":\
 		{\
 			"name": "Anypoint Bank",\
-			"clienId": "client_id_of_anypoint_bank",\
-			"clientSecret": "client_secret_of_anypoint_bank",\
+			"clienId": "client_id",\
+			"clientSecret": "client_secret",\
 			"asBaseURL" : "https://host:port/basePath", \
 			"aispBaseURL" : "https://host:port/basePath" \
 		},\
 	"2":\
 		{\
 			"name": "Chase",\
-			"clienId": "client_id_of_chase",\
-			"clientSecret": "client_secret_of_chase",\
+			"clienId": "client_id",\
+			"clientSecret": "client_secret",\
 			"asBaseURL" : "https://host:port/basePath", \
 			"aispBaseURL" : "https://host:port/basePath" \
 		},\
 	"3":\
 		{\
 			"name": "Union Bank",\
-			"clienId": "client_id_of_union_bank",\
-			"clientSecret": "client_secret_of_union_bank",\
+			"clienId": "client_id",\
+			"clientSecret": "client_secret",\
 			"asBaseURL" : "https://host:port/basePath", \
 			"aispBaseURL" : "https://host:port/basePath" \
 		}\
