@@ -4,12 +4,12 @@
 	xmlns:http="http://www.mulesoft.org/schema/mule/http"
 	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
 	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:spring="http://www.springframework.org/schema/beans" version="EE-3.8.2"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="
-http://www.mulesoft.org/schema/mule/objectstore http://www.mulesoft.org/schema/mule/objectstore/current/mule-objectstore.xsd 
-http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
-http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/objectstore http://www.mulesoft.org/schema/mule/objectstore/current/mule-objectstore.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
 
 <flow name="get:/user/{userId}/transactions/bank/{bankId}/account/{accountId}:api-config">
@@ -33,17 +33,19 @@ read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-vari
                     </http:request-builder>
                 </http:request>
                 <dw:transform-message doc:name="Build output">
+                    <dw:input-payload/>
                     <dw:set-payload><![CDATA[%dw 1.0
 %output application/java
 ---
-payload filter ($.account_id == flowVars.accountId) map {
+(payload filter ($.account_id == flowVars.accountId) map {
 	description     : $.description,
 	amount          : $.amount,
 	currency        : $.currency,
 	balance         : $.new_balance,
 	transactionDate : $.completed,
 	isIncome        : not ($.amount startsWith '-')
-}
+} orderBy $.transactionDate)[-1..0]
+
 ]]></dw:set-payload>
                 </dw:transform-message>
             </when>
