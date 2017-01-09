@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:objectstore="http://www.mulesoft.org/schema/mule/objectstore"
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:objectstore="http://www.mulesoft.org/schema/mule/objectstore"
 	xmlns:http="http://www.mulesoft.org/schema/mule/http"
 	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
 	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
@@ -10,9 +10,43 @@
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
-http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
 
 <flow name="get:/user/{userId}/transactions/bank/{bankId}/account/{accountId}:api-config">
+        <choice doc:name="Choice">
+            <when expression="flowVars.bankId == ${anypoint.bank.id}">
+                <flow-ref name="getAnypointBankTransactionsInfo" doc:name="getAnypointBankTransactionsInfo"/>
+            </when>
+            <otherwise>
+                <flow-ref name="getRegisteredBanksTransactionsInfo" doc:name="getRegisteredBanksTransactionsInfo"/>
+            </otherwise>
+        </choice>
+
+    </flow>
+    <sub-flow name="getAnypointBankTransactionsInfo">
+        <http:request config-ref="HTTP_Bank_Accounts_Process_API_Request_Configuration" path="/transactions/aggregate" method="GET" doc:name="Get user's transactions">
+            <http:request-builder>
+                <http:query-param paramName="ssn" value="#[flowVars.ssn]"/>
+            </http:request-builder>
+        </http:request>
+        <dw:transform-message doc:name="Build output">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+(payload filter ($.this_account.id == flowVars.accountId) map {
+	description     : $.details.label,
+	amount          : $.details.value.amount,
+	currency        : $.details.value.currency,
+	balance         : $.details.new_balance.amount,
+	transactionDate : $.details.completed,
+	isIncome        : not ($.details.value.amount startsWith '-')
+} orderBy $.transactionDate)[-1..0]
+
+]]></dw:set-payload>
+        </dw:transform-message>
+    </sub-flow>
+    <sub-flow name="getRegisteredBanksTransactionsInfo">
         <dw:transform-message doc:name="Read bankVar">
             <dw:set-payload><![CDATA[%dw 1.0
 %output application/java
@@ -53,6 +87,6 @@ read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-vari
                 <set-payload value="#[ [] ]" doc:name="No data"/>
             </otherwise>
         </choice>
-    </flow>
+    </sub-flow>
 
 </mule>
