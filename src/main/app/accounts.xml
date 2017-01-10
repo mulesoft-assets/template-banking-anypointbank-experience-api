@@ -14,44 +14,114 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
     
     <flow name="get:/user/{userId}/accounts:api-config">
-        <set-variable variableName="response" value="#[[]]" doc:name="Initialize response variable"/>
+        <set-variable variableName="ssn" value="#[message.inboundProperties.'http.query.params'.ssn]" doc:name="Set ssn variable"/>
+        <set-variable variableName="registeredBanksAccountsInfo" value="#[[]]" doc:name="Initialize registeredBanksAccountsInfo variable"/>
+        <enricher source="#[dw('payload')]" target="#[flowVars.anypointBankAccountsInfo]" doc:name="var anypointBankAccountsInfo">
+            <flow-ref name="getAnypointBankAccountsInfo" doc:name="getAnypointBankAccountsInfo"/>
+        </enricher>
         <foreach collection="#[(${registered.banks}).keySet()]" counterVariableName="bankCounter" doc:name="For Each Bank">
-            <set-variable variableName="bankId" value="#[payload]" doc:name="Set bankId variable"/>
-            <dw:transform-message doc:name="Load bank info">
-                <dw:set-variable variableName="bankVar"><![CDATA[%dw 1.0
+            <enricher source="#[dw('(flowVars.registeredBanksAccountsInfo + payload) when payload != null otherwise flowVars.registeredBanksAccountsInfo')]" target="#[flowVars.registeredBanksAccountsInfo]" doc:name="Add to registeredBanksAccountsInfo variable">
+                <flow-ref name="getRegisteredBanksAccountsInfo" doc:name="getRegisteredBanksAccountsInfo"/>
+            </enricher>
+
+        </foreach>
+        <dw:transform-message doc:name="Prepare response">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+{
+	anypointBank: flowVars.anypointBankAccountsInfo,
+	registeredBanks: flowVars.registeredBanksAccountsInfo
+}]]></dw:set-payload>
+        </dw:transform-message>
+
+
+        <logger message="#[message.inboundProperties.'http.host' + message.inboundProperties.'http.request.uri'] has finished processing." level="INFO" doc:name="Log success"/>
+    </flow>
+    <sub-flow name="getAnypointBankAccountsInfo">
+        <enricher source="#[dw('payload')]" target="#[flowVars.info]" doc:name="var info">
+            <http:request config-ref="HTTP_Bank_Accounts_Process_API_Request_Configuration" path="/accounts/aggregate" method="GET" doc:name="Get accounts info">
+                <http:request-builder>
+                    <http:query-param paramName="ssn" value="#[flowVars.ssn]"/>
+                </http:request-builder>
+            </http:request>
+        </enricher>
+        <enricher source="#[dw('payload')]" target="#[flowVars.transactions]" doc:name="var transactions">
+            <http:request config-ref="HTTP_Bank_Accounts_Process_API_Request_Configuration" path="/transactions/aggregate" method="GET" doc:name="Get accounts transactions">
+                <http:request-builder>
+                    <http:query-param paramName="ssn" value="#[flowVars.ssn]"/>
+                </http:request-builder>
+            </http:request>
+        </enricher>
+        <dw:transform-message doc:name="Build account info">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+using (
+	checkingAccInfo = flowVars.info filter ($.type == "checking"),
+	savingsAccInfo = flowVars.info filter ($.type == "savings")
+){
+	bankName: p('anypoint.bank.name'),
+	bankId: p('anypoint.bank.id'),
+	
+	(checking: 
+		using (
+			transactions = ((flowVars.transactions filter ($.account_id == checkingAccInfo[0].id)) orderBy $.completed)[-1..0]
+		){
+		accountId           : checkingAccInfo[0].id,
+		amount              : checkingAccInfo[0].balance.amount,
+		currency            : checkingAccInfo[0].balance.currency,
+		lastTransactionDate : transactions[0].completed when not (transactions is :empty) otherwise null
+	}) when not (checkingAccInfo is :empty),
+	
+	(savings:
+		using (
+			transactions = ((flowVars.transactions filter ($.account_id == savingsAccInfo[0].id)) orderBy $.completed)[-1..0]
+		){
+		accountId           : savingsAccInfo[0].id,
+		amount              : savingsAccInfo[0].balance.amount,
+		currency            : savingsAccInfo[0].balance.currency,
+		lastTransactionDate : transactions[0].completed when not (transactions is :empty) otherwise null
+	}) when not (savingsAccInfo is :empty)
+}]]></dw:set-payload>
+        </dw:transform-message>
+    </sub-flow>
+    <sub-flow name="getRegisteredBanksAccountsInfo">
+        <set-variable variableName="bankId" value="#[payload]" doc:name="Set bankId variable"/>
+        <dw:transform-message doc:name="Load bank info">
+            <dw:set-variable variableName="bankVar"><![CDATA[%dw 1.0
 %output application/java
 ---
 read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-variable>
-            </dw:transform-message>
-            <objectstore:contains config-ref="UserToken__Configuration" key="#[flowVars.userId + '_' + flowVars.bankId]" doc:name="Check if user is registered with bank"/>
-            <choice doc:name="Contains token for bank?">
-                <when expression="payload == true">
-                    <logger message="Getting accounts for user '#[flowVars.userId]' in bank '#[flowVars.bankId]'" level="INFO" doc:name="Log process"/>
-                    <objectstore:retrieve config-ref="UserToken__Configuration" key="#[flowVars.userId + '_' + flowVars.bankId]" targetProperty="token" doc:name="Get token"/>
-                    <enricher source="#[dw('payload')]" target="#[flowVars.info]" doc:name="var info">
-                        <http:request config-ref="HTTP_Bank_AISP_Request_Configuration" path="/info" method="GET" doc:name="Get accounts info">
-                            <http:request-builder>
-                                <http:header headerName="Authorization" value="Bearer #[flowVars.token]"/>
-                            </http:request-builder>
-                        </http:request>
-                    </enricher>
-                    <enricher source="#[dw('payload')]" target="#[flowVars.balance]" doc:name="var balance">
-                        <http:request config-ref="HTTP_Bank_AISP_Request_Configuration" path="/balance" method="GET" doc:name="Get accounts balance">
-                            <http:request-builder>
-                                <http:header headerName="Authorization" value="Bearer #[flowVars.token]"/>
-                            </http:request-builder>
-                        </http:request>
-                    </enricher>
-                    <enricher source="#[dw('payload')]" target="#[flowVars.transactions]" doc:name="var transactions">
-                        <http:request config-ref="HTTP_Bank_AISP_Request_Configuration" path="/transactions" method="GET" doc:name="Get accounts transactions">
-                            <http:request-builder>
-                                <http:header headerName="Authorization" value="Bearer #[flowVars.token]"/>
-                            </http:request-builder>
-                        </http:request>
-                    </enricher>
-
-                    <dw:transform-message doc:name="Build account Info">
-                        <dw:set-payload><![CDATA[%dw 1.0
+        </dw:transform-message>
+        <objectstore:contains config-ref="UserToken__Configuration" key="#[flowVars.userId + '_' + flowVars.bankId]" doc:name="Check if user is registered with bank"/>
+        <choice doc:name="Contains token for bank?">
+            <when expression="payload == true">
+                <logger message="Getting accounts for user '#[flowVars.userId]' in bank '#[flowVars.bankId]'" level="INFO" doc:name="Log process"/>
+                <objectstore:retrieve config-ref="UserToken__Configuration" key="#[flowVars.userId + '_' + flowVars.bankId]" targetProperty="token" doc:name="Get token"/>
+                <enricher source="#[dw('payload')]" target="#[flowVars.info]" doc:name="var info">
+                    <http:request config-ref="HTTP_Bank_AISP_Request_Configuration" path="/info" method="GET" doc:name="Get accounts info">
+                        <http:request-builder>
+                            <http:header headerName="Authorization" value="Bearer #[flowVars.token]"/>
+                        </http:request-builder>
+                    </http:request>
+                </enricher>
+                <enricher source="#[dw('payload')]" target="#[flowVars.balance]" doc:name="var balance">
+                    <http:request config-ref="HTTP_Bank_AISP_Request_Configuration" path="/balance" method="GET" doc:name="Get accounts balance">
+                        <http:request-builder>
+                            <http:header headerName="Authorization" value="Bearer #[flowVars.token]"/>
+                        </http:request-builder>
+                    </http:request>
+                </enricher>
+                <enricher source="#[dw('payload')]" target="#[flowVars.transactions]" doc:name="var transactions">
+                    <http:request config-ref="HTTP_Bank_AISP_Request_Configuration" path="/transactions" method="GET" doc:name="Get accounts transactions">
+                        <http:request-builder>
+                            <http:header headerName="Authorization" value="Bearer #[flowVars.token]"/>
+                        </http:request-builder>
+                    </http:request>
+                </enricher>
+                <dw:transform-message doc:name="Build account Info">
+                    <dw:set-payload><![CDATA[%dw 1.0
 %output application/java
 ---
 using (
@@ -89,23 +159,12 @@ using (
 	
 
 }]]></dw:set-payload>
-                    </dw:transform-message>
-                    <dw:transform-message doc:name="Add to response array">
-                        <dw:set-variable variableName="response"><![CDATA[%dw 1.0
-%output application/java
----
-flowVars.response + payload]]></dw:set-variable>
-
-                    </dw:transform-message>
-
-                </when>
-                <otherwise>
-                    <logger message="Bank '#[flowVars.bankId]' not linked with user '#[flowVars.userId]'" level="INFO" doc:name="Log not linked"/>
-                </otherwise>
-            </choice>
-        </foreach>
-        <set-payload value="#[flowVars.response]" doc:name="Set response"/>
-
-        <logger message="#[message.inboundProperties.'http.host' + message.inboundProperties.'http.request.uri'] has finished processing." level="INFO" doc:name="Log success"/>
-    </flow>
+                </dw:transform-message>
+            </when>
+            <otherwise>
+                <logger message="Bank '#[flowVars.bankId]' not linked with user '#[flowVars.userId]'" level="INFO" doc:name="Log not linked"/>
+                <set-payload value="#[null]" doc:name="Set response"/>
+            </otherwise>
+        </choice>
+    </sub-flow>
 </mule>

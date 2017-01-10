@@ -75,6 +75,10 @@ baseUri: http://localhost:8081/api/
     displayName: Get user's accounts info
     get:
       description: GET user's accounts info from AISP interfaces of banks
+      queryParameters:
+        ssn:
+          type: string | integer
+          example: "124-123-12344"
       responses:
         200:
           body:
@@ -91,6 +95,10 @@ baseUri: http://localhost:8081/api/
     displayName: Get transaction history of account of user 
     get:
       description: Get transaction history of account of user from AISP interfaces of banks
+      queryParameters:
+        ssn:
+          type: string | integer
+          example: "124-123-12344"
       responses:
         200:
           body:
