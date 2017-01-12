@@ -14,6 +14,7 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
 
 <flow name="get:/user/{userId}/transactions/bank/{bankId}/account/{accountId}:api-config">
+        <set-variable variableName="ssn" value="#[message.inboundProperties.'http.query.params'.ssn]" doc:name="Set ssn variable"/>
         <choice doc:name="Choice">
             <when expression="flowVars.bankId == ${anypoint.bank.id}">
                 <flow-ref name="getAnypointBankTransactionsInfo" doc:name="getAnypointBankTransactionsInfo"/>
