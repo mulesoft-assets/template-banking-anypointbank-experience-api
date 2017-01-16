@@ -107,8 +107,8 @@ Detailed list with examples:
 + identity_service.basePath `/api`
 
 ####JWT session token details
-access_token.issuer=
-access_token.encryption_key.path=
++ access_token.issuer `https://anypoint-bank.example.com`
++ access_token.encryption_key.path `aes-key.jwk`
 
 ####Anypoint Bank
 + anypoint.bank.name `Anypoint Bank`
