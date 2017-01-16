@@ -13,8 +13,9 @@ http://www.mulesoft.org/schema/mule/objectstore http://www.mulesoft.org/schema/m
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
     
-    <flow name="get:/user/{userId}/accounts:api-config">
-        <set-variable variableName="ssn" value="#[message.inboundProperties.'http.query.params'.ssn]" doc:name="Set ssn variable"/>
+    <flow name="get:/user/accounts:api-config">
+        <flow-ref name="validateToken" doc:name="validateToken -&gt; var user"/>
+
         <set-variable variableName="registeredBanksAccountsInfo" value="#[[]]" doc:name="Initialize registeredBanksAccountsInfo variable"/>
         <enricher source="#[dw('payload')]" target="#[flowVars.anypointBankAccountsInfo]" doc:name="var anypointBankAccountsInfo">
             <flow-ref name="getAnypointBankAccountsInfo" doc:name="getAnypointBankAccountsInfo"/>
@@ -42,14 +43,16 @@ http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/
         <enricher source="#[dw('payload')]" target="#[flowVars.info]" doc:name="var info">
             <http:request config-ref="HTTP_Bank_Accounts_Process_API_Request_Configuration" path="/accounts/aggregate" method="GET" doc:name="Get accounts info">
                 <http:request-builder>
-                    <http:query-param paramName="ssn" value="#[flowVars.ssn]"/>
+                    <http:query-param paramName="ssn" value="#[flowVars.user.ssn]"/>
+
                 </http:request-builder>
             </http:request>
         </enricher>
         <enricher source="#[dw('payload')]" target="#[flowVars.transactions]" doc:name="var transactions">
             <http:request config-ref="HTTP_Bank_Accounts_Process_API_Request_Configuration" path="/transactions/aggregate" method="GET" doc:name="Get accounts transactions">
                 <http:request-builder>
-                    <http:query-param paramName="ssn" value="#[flowVars.ssn]"/>
+                    <http:query-param paramName="ssn" value="#[flowVars.user.ssn]"/>
+
                 </http:request-builder>
             </http:request>
         </enricher>

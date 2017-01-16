@@ -13,8 +13,10 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
 
-<flow name="get:/user/{userId}/transactions/bank/{bankId}/account/{accountId}:api-config">
-        <choice doc:name="Choice">
+<flow name="get:/user/transactions/bank/{bankId}/account/{accountId}:api-config">
+        <flow-ref name="validateToken" doc:name="validateToken"/>
+
+        <choice doc:name="is AnypointBank account">
             <when expression="flowVars.bankId == ${anypoint.bank.id}">
                 <flow-ref name="getAnypointBankTransactionsInfo" doc:name="getAnypointBankTransactionsInfo"/>
             </when>
@@ -27,7 +29,8 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
     <sub-flow name="getAnypointBankTransactionsInfo">
         <http:request config-ref="HTTP_Bank_Accounts_Process_API_Request_Configuration" path="/transactions/aggregate" method="GET" doc:name="Get user's transactions">
             <http:request-builder>
-                <http:query-param paramName="ssn" value="#[flowVars.ssn]"/>
+                <http:query-param paramName="ssn" value="#[flowVars.user.ssn]"/>
+
             </http:request-builder>
         </http:request>
         <dw:transform-message doc:name="Build output">
