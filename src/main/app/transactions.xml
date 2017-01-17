@@ -60,10 +60,10 @@ read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-payl
 ---
 read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-variable>
         </dw:transform-message>
-        <objectstore:contains config-ref="UserToken__Configuration" key="#[flowVars.userId + '_' + flowVars.bankId]" doc:name="Check token for bank"/>
+        <objectstore:contains config-ref="UserToken__Configuration" key="#[flowVars.user.sub + '_' + flowVars.bankId]" doc:name="Check token for bank"/>
         <choice doc:name="Does the token exist?">
             <when expression="#[payload == true]">
-                <objectstore:retrieve config-ref="UserToken__Configuration" key="#[flowVars.userId + '_' + flowVars.bankId]" targetProperty="token" doc:name="Get token"/>
+                <objectstore:retrieve config-ref="UserToken__Configuration" key="#[flowVars.user.sub + '_' + flowVars.bankId]" targetProperty="token" doc:name="Get token"/>
                 <http:request config-ref="HTTP_Bank_AISP_Request_Configuration" path="/transactions" method="GET" doc:name="Get user's transactions">
                     <http:request-builder>
                         <http:header headerName="Authorization" value="Bearer #[flowVars.token]"/>

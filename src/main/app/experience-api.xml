@@ -17,7 +17,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
     
     <context:property-placeholder location="common.properties, mule.${mule.env}.properties" />
     
-    <http:listener-config name="api-listener"  protocol="HTTPS" host="0.0.0.0" port="${https.port}" doc:name="HTTP Listener Configuration"  >
+    <http:listener-config name="api-listener" protocol="HTTPS" host="0.0.0.0" port="${https.port}" doc:name="HTTP Listener Configuration"  >
         <tls:context>
             <tls:key-store type="jks" path="${keystore.location}" alias="${key.alias}" keyPassword="${key.password}" password="${keystore.password}"/>
         </tls:context>
@@ -41,7 +41,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <http:raml-api-configuration location="aisp-experience-api/banking-aisp-experience-api.raml"/>
 
     </http:request-config>
-    <http:listener-config name="test_config" host="0.0.0.0" port="8085" basePath="/api" doc:name="HTTP Listener Configuration"/>
+    <http:listener-config name="test_config" host="0.0.0.0" port="8081" basePath="/api" doc:name="HTTP Listener Configuration"/>
     <http:request-config name="Identity_service_HTTP" protocol="HTTPS" host="${identity_service.host}" port="${identity_service.port}" basePath="${identity_service.basePath}" doc:name="HTTP Request Configuration"/>
    
    
@@ -91,7 +91,7 @@ read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-vari
         <logger message="Received token #[payload.token]" level="INFO" doc:name="Log token"/>
     </sub-flow>
     <flow name="removeTokenFlow">
-        <http:listener config-ref="test_config" path="/clear" allowedMethods="GET" doc:name="localhost:8085/api/clear?bank=1&amp;userid=1"/>
+        <http:listener config-ref="test_config" path="/clear" allowedMethods="GET" doc:name="localhost:8081/api/clear?bank=1&amp;userid=1"/>
         <objectstore:remove config-ref="UserToken__Configuration" key="#[message.inboundProperties.'http.query.params'.userid + &quot;_&quot; + message.inboundProperties.'http.query.params'.bank]" ignoreNotExists="true" doc:name="Remove by key"/>
         <set-payload value="Object under key #[message.inboundProperties.'http.query.params'.userid + &quot;_&quot; + message.inboundProperties.'http.query.params'.bank] was removed!" doc:name="Response"/>
     </flow>
@@ -132,7 +132,7 @@ import java.security.Key;
 
 JwtClaims claims = new JwtClaims();
 claims.setIssuer('${access_token.issuer}');  
-claims.setExpirationTimeMinutesInTheFuture(60); 
+claims.setExpirationTimeMinutesInTheFuture(${access_token.validity.minutes}); 
 claims.setIssuedAtToNow();
 claims.setSubject(flowVars.user.id); 
 claims.setClaim("ssn", flowVars.user.ssn);

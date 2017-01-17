@@ -97,11 +97,11 @@ using (
 ---
 read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-variable>
         </dw:transform-message>
-        <objectstore:contains config-ref="UserToken__Configuration" key="#[flowVars.userId + '_' + flowVars.bankId]" doc:name="Check if user is registered with bank"/>
+        <objectstore:contains config-ref="UserToken__Configuration" key="#[flowVars.user.sub + '_' + flowVars.bankId]" doc:name="Check if user is registered with bank"/>
         <choice doc:name="Contains token for bank?">
             <when expression="payload == true">
                 <logger message="Getting accounts for user '#[flowVars.userId]' in bank '#[flowVars.bankId]'" level="INFO" doc:name="Log process"/>
-                <objectstore:retrieve config-ref="UserToken__Configuration" key="#[flowVars.userId + '_' + flowVars.bankId]" targetProperty="token" doc:name="Get token"/>
+                <objectstore:retrieve config-ref="UserToken__Configuration" key="#[flowVars.user.sub + '_' + flowVars.bankId]" targetProperty="token" doc:name="Get token"/>
                 <enricher source="#[dw('payload')]" target="#[flowVars.info]" doc:name="var info">
                     <http:request config-ref="HTTP_Bank_AISP_Request_Configuration" path="/info" method="GET" doc:name="Get accounts info">
                         <http:request-builder>

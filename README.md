@@ -108,6 +108,7 @@ Detailed list with examples:
 
 ####JWT session token details
 + access_token.issuer `https://anypoint-bank.example.com`
++ access_token.validity.minutes `30`
 + access_token.encryption_key.path `aes-key.jwk`
 
 ####Anypoint Bank
