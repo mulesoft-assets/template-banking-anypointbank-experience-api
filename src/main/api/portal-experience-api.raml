@@ -36,11 +36,12 @@ traits:
           application/json:
             example: !include session/signin-error-response.json
 /user:
-  /settings:
+
+  /info:
     is: [secured]
     displayName: User info
     get:
-      description: GET User settings
+      description: GET User info
       responses:
         200:
           body:

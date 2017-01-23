@@ -17,7 +17,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
     
     <context:property-placeholder location="common.properties, mule.${mule.env}.properties" />
     
-    <http:listener-config name="api-listener" protocol="HTTPS" host="0.0.0.0" port="${https.port}" doc:name="HTTP Listener Configuration"  >
+    <http:listener-config name="api-listener"  host="0.0.0.0" port="${https.port}" doc:name="HTTP Listener Configuration" protocol="HTTPS" >
         <tls:context>
             <tls:key-store type="jks" path="${keystore.location}" alias="${key.alias}" keyPassword="${key.password}" password="${keystore.password}"/>
         </tls:context>
@@ -95,29 +95,31 @@ read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-vari
         <objectstore:remove config-ref="UserToken__Configuration" key="#[message.inboundProperties.'http.query.params'.userid + &quot;_&quot; + message.inboundProperties.'http.query.params'.bank]" ignoreNotExists="true" doc:name="Remove by key"/>
         <set-payload value="Object under key #[message.inboundProperties.'http.query.params'.userid + &quot;_&quot; + message.inboundProperties.'http.query.params'.bank] was removed!" doc:name="Response"/>
     </flow>
+    <flow name="get:/user/info:api-config">
+        <flow-ref name="validateToken" doc:name="validateToken"/>
+        <logger level="INFO" doc:name="Logger"/>
+        <http:request config-ref="Identity_service_HTTP" path="users/{id}" method="GET" doc:name="Get user info">
+            <http:request-builder>
+                <http:uri-param paramName="id" value="#[flowVars.user.sub]"/>
+            </http:request-builder>
+            <http:success-status-code-validator values="200,404"/>
+        </http:request>
+        <logger message="#[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
+    </flow>
     <flow name="post:/login:api-config">
         <choice doc:name="credentials present">
             <when expression="#[payload != null &amp;&amp; payload.username != null &amp;&amp; payload.password != null]">
-                <http:request config-ref="Identity_service_HTTP" path="auth" method="GET" doc:name="Validate credentials and get info">
+                <http:request config-ref="Identity_service_HTTP" path="authorize" method="GET" doc:name="Validate credentials and get info">
                     <http:request-builder>
                         <http:query-param paramName="username" value="#[payload.username]"/>
                         <http:query-param paramName="password" value="#[payload.password]"/>
                     </http:request-builder>
+                    <http:success-status-code-validator values="401,200"/>
                 </http:request>
                 <json:json-to-object-transformer returnClass="java.util.Map" doc:name="JSON to Object"/>
                 <logger message="ext-service-output: #[payload]" level="INFO" doc:name="Logger"/>
                 <choice doc:name="Authenticated?">
                     <when expression="#[payload.id != null]">
-                        <dw:transform-message doc:name="mock">
-                            <dw:set-variable variableName="user"><![CDATA[%dw 1.0
-%output application/java
----
-{
-	id: "2530f2e2-b0c9-4f13-9201-60c863c170c5",
-	name: "Jane Thompson",
-	ssn: "124-123-12344"
-}]]></dw:set-variable>
-                        </dw:transform-message>
                         <enricher source="#[payload]" target="#[flowVars.aesKeyString]" doc:name="save to var aesKeyString">
                             <parse-template location="${access_token.encryption_key.path}" doc:name="load AES key"/>
                         </enricher>
@@ -134,8 +136,8 @@ JwtClaims claims = new JwtClaims();
 claims.setIssuer('${access_token.issuer}');  
 claims.setExpirationTimeMinutesInTheFuture(${access_token.validity.minutes}); 
 claims.setIssuedAtToNow();
-claims.setSubject(flowVars.user.id); 
-claims.setClaim("ssn", flowVars.user.ssn);
+claims.setSubject(payload.id); 
+claims.setClaim("ssn", payload.ssn);
 
 aesKey = (OctetSequenceJsonWebKey) JsonWebKey.Factory.newJwk(flowVars.aesKeyString);
 
