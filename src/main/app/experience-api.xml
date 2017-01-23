@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<mule xmlns:objectstore="http://www.mulesoft.org/schema/mule/objectstore" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:api-platform-gw="http://www.mulesoft.org/schema/mule/api-platform-gw" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns:context="http://www.springframework.org/schema/context" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:objectstore="http://www.mulesoft.org/schema/mule/objectstore" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:api-platform-gw="http://www.mulesoft.org/schema/mule/api-platform-gw" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns:context="http://www.springframework.org/schema/context" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
@@ -8,19 +8,19 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 http://www.mulesoft.org/schema/mule/api-platform-gw http://www.mulesoft.org/schema/mule/api-platform-gw/current/mule-api-platform-gw.xsd
 http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
-http://www.mulesoft.org/schema/mule/objectstore http://www.mulesoft.org/schema/mule/objectstore/current/mule-objectstore.xsd">
+http://www.mulesoft.org/schema/mule/objectstore http://www.mulesoft.org/schema/mule/objectstore/current/mule-objectstore.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
    
     <api-platform-gw:api id="${api.id}" apiName="${api.name}" version="${api.version}" flowRef="experience-apiFlow" doc:name="API Autodiscovery" create="true" />
     
     <context:property-placeholder location="common.properties, mule.${mule.env}.properties" />
     
-    <http:listener-config protocol="HTTPS" name="api-listener" host="0.0.0.0" port="${https.port}" doc:name="HTTP Listener Configuration" >
+    <http:listener-config name="api-listener"  host="0.0.0.0" port="${https.port}" doc:name="HTTP Listener Configuration" protocol="HTTPS" >
         <tls:context>
             <tls:key-store type="jks" path="${keystore.location}" alias="${key.alias}" keyPassword="${key.password}" password="${keystore.password}"/>
         </tls:context>
-        <!-- tls:context>
-            <tls:key-store type="jks" path="${keystore.location}" alias="${key.alias}" keyPassword="${key.password}" password="${keystore.password}" />
-        </tls:context -->
     </http:listener-config>
     
     <apikit:config name="api-config" raml="portal-experience-api.raml" consoleEnabled="true" consolePath="console" doc:name="Router" />
@@ -41,7 +41,8 @@ http://www.mulesoft.org/schema/mule/objectstore http://www.mulesoft.org/schema/m
         <http:raml-api-configuration location="aisp-experience-api/banking-aisp-experience-api.raml"/>
 
     </http:request-config>
-    <http:listener-config name="test_config" host="0.0.0.0" port="8085" basePath="/api" doc:name="HTTP Listener Configuration"/>
+    <http:listener-config name="test_config" host="0.0.0.0" port="8081" basePath="/api" doc:name="HTTP Listener Configuration"/>
+    <http:request-config name="Identity_service_HTTP" protocol="HTTPS" host="${identity_service.host}" port="${identity_service.port}" basePath="${identity_service.basePath}" doc:name="HTTP Request Configuration"/>
    
    
    
@@ -52,7 +53,8 @@ http://www.mulesoft.org/schema/mule/objectstore http://www.mulesoft.org/schema/m
         <exception-strategy ref="api-apiKitGlobalExceptionMapping" doc:name="Reference Exception Strategy" />
     </flow>
 
-    <flow name="post:/user/{userId}/register/bank/{bankId}:api-config">
+    <flow name="post:/user/register/bank/{bankId}:api-config">
+        <flow-ref name="validateToken" doc:name="validateToken"/>
         <dw:transform-message doc:name="Transform properties to bankVar based on bankId">
             <dw:set-variable variableName="bankVar"><![CDATA[%dw 1.0
 %output application/java
@@ -61,7 +63,7 @@ read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-vari
         </dw:transform-message>
         <set-variable variableName="tokenVar" value="${userToken}" doc:name="Set token from AS to tokenVar"/>
         <logger message="token stored: #[flowVars.tokenVar]" level="INFO" doc:name="Logger"/>
-        <objectstore:store config-ref="UserToken__Configuration" key="#[flowVars.userId + '_' + flowVars.bankId]" value-ref="#[flowVars.tokenVar]" overwrite="true" doc:name="Store user's token"/>
+        <objectstore:store config-ref="UserToken__Configuration" key="#[flowVars.user.sub + '_' + flowVars.bankId]" value-ref="#[flowVars.tokenVar]" overwrite="true" doc:name="Store user's token"/>
 
     </flow>
     <sub-flow name="obtainAccessTokenSubFlow">
@@ -82,22 +84,144 @@ read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-vari
             <http:request-builder>
                 <http:header headerName="Content-Type" value="application/x-www-form-urlencoded"/>
 
+
             </http:request-builder>
         </http:request>
         <set-variable variableName="tokenVar" value="#[payload.token]" doc:name="Set token from AS to tokenVar"/>
         <logger message="Received token #[payload.token]" level="INFO" doc:name="Log token"/>
     </sub-flow>
     <flow name="removeTokenFlow">
-        <http:listener config-ref="test_config" path="/clear" allowedMethods="GET" doc:name="localhost:8085/api/clear?bank=1&amp;user=1"/>
-        <objectstore:remove config-ref="UserToken__Configuration" key="#[message.inboundProperties.'http.query.params'.user + &quot;_&quot; + message.inboundProperties.'http.query.params'.bank]" ignoreNotExists="true" doc:name="Remove by key"/>
-        <set-payload value="Object under key #[message.inboundProperties.'http.query.params'.user + &quot;_&quot; + message.inboundProperties.'http.query.params'.bank] was removed!" doc:name="Response"/>
+        <http:listener config-ref="test_config" path="/clear" allowedMethods="GET" doc:name="localhost:8081/api/clear?bank=1&amp;userid=1"/>
+        <objectstore:remove config-ref="UserToken__Configuration" key="#[message.inboundProperties.'http.query.params'.userid + &quot;_&quot; + message.inboundProperties.'http.query.params'.bank]" ignoreNotExists="true" doc:name="Remove by key"/>
+        <set-payload value="Object under key #[message.inboundProperties.'http.query.params'.userid + &quot;_&quot; + message.inboundProperties.'http.query.params'.bank] was removed!" doc:name="Response"/>
     </flow>
+    <flow name="get:/user/info:api-config">
+        <flow-ref name="validateToken" doc:name="validateToken"/>
+        <logger level="INFO" doc:name="Logger"/>
+        <http:request config-ref="Identity_service_HTTP" path="users/{id}" method="GET" doc:name="Get user info">
+            <http:request-builder>
+                <http:uri-param paramName="id" value="#[flowVars.user.sub]"/>
+            </http:request-builder>
+            <http:success-status-code-validator values="200,404"/>
+        </http:request>
+        <logger message="#[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
+    </flow>
+    <flow name="post:/login:api-config">
+        <choice doc:name="credentials present">
+            <when expression="#[payload != null &amp;&amp; payload.username != null &amp;&amp; payload.password != null]">
+                <http:request config-ref="Identity_service_HTTP" path="authorize" method="GET" doc:name="Validate credentials and get info">
+                    <http:request-builder>
+                        <http:query-param paramName="username" value="#[payload.username]"/>
+                        <http:query-param paramName="password" value="#[payload.password]"/>
+                    </http:request-builder>
+                    <http:success-status-code-validator values="401,200"/>
+                </http:request>
+                <json:json-to-object-transformer returnClass="java.util.Map" doc:name="JSON to Object"/>
+                <logger message="ext-service-output: #[payload]" level="INFO" doc:name="Logger"/>
+                <choice doc:name="Authenticated?">
+                    <when expression="#[payload.id != null]">
+                        <enricher source="#[payload]" target="#[flowVars.aesKeyString]" doc:name="save to var aesKeyString">
+                            <parse-template location="${access_token.encryption_key.path}" doc:name="load AES key"/>
+                        </enricher>
+                        <scripting:transformer doc:name="build JWT token">
+                            <scripting:script engine="Groovy"><![CDATA[import org.jose4j.jwt.JwtClaims;
+import org.jose4j.jwe.JsonWebEncryption;
+import org.jose4j.jwe.KeyManagementAlgorithmIdentifiers;
+import org.jose4j.jwe.ContentEncryptionAlgorithmIdentifiers;
+import org.jose4j.jwk.JsonWebKey;
+import org.jose4j.jwk.OctetSequenceJsonWebKey;
+import java.security.Key;
+
+JwtClaims claims = new JwtClaims();
+claims.setIssuer('${access_token.issuer}');  
+claims.setExpirationTimeMinutesInTheFuture(${access_token.validity.minutes}); 
+claims.setIssuedAtToNow();
+claims.setSubject(payload.id); 
+claims.setClaim("ssn", payload.ssn);
+
+aesKey = (OctetSequenceJsonWebKey) JsonWebKey.Factory.newJwk(flowVars.aesKeyString);
+
+JsonWebEncryption jwe = new JsonWebEncryption();
+
+// header + settings
+jwe.setAlgorithmHeaderValue(KeyManagementAlgorithmIdentifiers.DIRECT);
+jwe.setEncryptionMethodHeaderParameter(ContentEncryptionAlgorithmIdentifiers.AES_128_GCM);
+
+jwe.setPayload(claims.toJson());
+jwe.setKey(aesKey.getKey());
+
+return jwe.getCompactSerialization();
+]]></scripting:script>
+                        </scripting:transformer>
+                        <set-payload value="{&quot;access_token&quot; : &quot;#[payload]&quot;}" doc:name="set response"/>
+
+                    </when>
+                    <otherwise>
+                        <flow-ref name="unauthorizedSubFlow" doc:name="unauthorizedSubFlow"/>
+                    </otherwise>
+                </choice>
+            </when>
+            <otherwise>
+                <flow-ref name="unauthorizedSubFlow" doc:name="unauthorizedSubFlow"/>
+            </otherwise>
+        </choice>
+
+    </flow>
+    <sub-flow name="validateToken">
+        <validation:all doc:name="Validate Authorize header">
+            <validation:validations>
+                <validation:is-not-null value="#[message.inboundProperties.authorization]" message="Authorization header is null"/>
+                <validation:is-true expression="#[message.inboundProperties.authorization.startsWith(&quot;Bearer &quot;)]" message="Authorization header does't start with 'Bearer '"/>
+            </validation:validations>
+        </validation:all>
+        <set-variable variableName="ui_token" value="#[message.inboundProperties.authorization.substring(7)]" doc:name="var ui_token"/>
+        <enricher source="#[payload]" target="#[flowVars.aesKeyString]" doc:name="save to var aesKeyString">
+            <parse-template location="${access_token.encryption_key.path}" doc:name="load AES key"/>
+        </enricher>
+        <enricher source="#[payload]" target="#[flowVars.user]" doc:name="var user">
+            <scripting:transformer returnClass="java.util.Map" doc:name="Validate access_token">
+                <scripting:script engine="Groovy"><![CDATA[import org.jose4j.jwt.JwtClaims;
+import org.jose4j.keys.HmacKey;
+import org.jose4j.keys.resolvers.HttpsJwksVerificationKeyResolver;
+import org.jose4j.jwk.HttpsJwks;
+import org.jose4j.jwk.JsonWebKey;
+import org.jose4j.jwk.OctetSequenceJsonWebKey;
+import org.jose4j.jwt.consumer.JwtConsumer;
+import org.jose4j.jwt.consumer.JwtConsumerBuilder;
+import org.jose4j.jwa.AlgorithmConstraints;
+import org.jose4j.jwa.AlgorithmConstraints.ConstraintType;
+import java.security.Key;
+
+aesKey = (OctetSequenceJsonWebKey) JsonWebKey.Factory.newJwk(flowVars.aesKeyString);
+    
+JwtConsumer jwtConsumer = new JwtConsumerBuilder()
+			.setDisableRequireSignature()
+			.setRequireExpirationTime()
+			.setJweAlgorithmConstraints(new AlgorithmConstraints(ConstraintType.WHITELIST, "dir"))
+			.setMaxFutureValidityInMinutes(360)
+			.setExpectedIssuer('${access_token.issuer}')
+			.setDecryptionKey(aesKey.getKey())
+			.build();
+		
+JwtClaims jwtClaims = jwtConsumer.processToClaims(flowVars.ui_token);
+return jwtClaims.getClaimsMap();]]></scripting:script>
+            </scripting:transformer>
+        </enricher>
+    </sub-flow>
+    <sub-flow name="unauthorizedSubFlow">
+        <set-payload value="{ &quot;message&quot;: &quot;Unauthorized&quot; ,&quot;service&quot; : &quot;AnypointBankExperienceAPI&quot;}" doc:name="Unauthenticated"/>
+        <set-property propertyName="http.status" value="401" doc:name="401"/>
+    </sub-flow>
 
     <apikit:mapping-exception-strategy name="api-apiKitGlobalExceptionMapping">
         <apikit:mapping statusCode="401">
             <apikit:exception value="org.mule.api.security.UnauthorisedException" />
+            <apikit:exception value="org.mule.extension.validation.api.MultipleValidationException"/>
+            <apikit:exception value="org.jose4j.lang.JoseException"/>
+            <apikit:exception value="org.jose4j.jwt.consumer.InvalidJwtException"/>
             <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
-            <set-payload value="{ &quot;message&quot;: &quot;Unauthorized&quot; ,&quot;service&quot; : &quot;AnypointBankExperienceAPI&quot;}" doc:name="Set Payload" />
+            <flow-ref name="unauthorizedSubFlow" doc:name="unauthorizedSubFlow"/>
+
         </apikit:mapping>
         <apikit:mapping statusCode="404">
             <apikit:exception value="org.mule.module.apikit.exception.NotFoundException" />

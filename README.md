@@ -101,16 +101,22 @@ Detailed list with examples:
 + anypoint.platform.client_id `cloudhub_client_id` 
 + anypoint.platform.client_secret `cloudhub_client_secret` 
 
+####User identity service
++ identity_service.host `identity.example.com`
++ identity_service.port `443`
++ identity_service.basePath `/api`
+
+####JWT session token details
++ access_token.issuer `https://anypoint-bank.example.com`
++ access_token.validity.minutes `30`
++ access_token.encryption_key.path `aes-key.jwk`
+
+####Anypoint Bank
++ anypoint.bank.name `Anypoint Bank`
++ anypoint.bank.id `1`
+
 ####API calls configuration
 registered.banks 	```{\
-	"1":\
-		{\
-			"name": "Anypoint Bank",\
-			"clienId": "client_id",\
-			"clientSecret": "client_secret",\
-			"asBaseURL" : "https://host:port/basePath", \
-			"aispBaseURL" : "https://host:port/basePath" \
-		},\
 	"2":\
 		{\
 			"name": "Chase",\

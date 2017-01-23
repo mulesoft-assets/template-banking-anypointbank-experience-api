@@ -13,8 +13,10 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
 
-<flow name="get:/user/{userId}/transactions/bank/{bankId}/account/{accountId}:api-config">
-        <choice doc:name="Choice">
+<flow name="get:/user/transactions/bank/{bankId}/account/{accountId}:api-config">
+        <flow-ref name="validateToken" doc:name="validateToken"/>
+
+        <choice doc:name="is AnypointBank account">
             <when expression="flowVars.bankId == ${anypoint.bank.id}">
                 <flow-ref name="getAnypointBankTransactionsInfo" doc:name="getAnypointBankTransactionsInfo"/>
             </when>
@@ -27,7 +29,8 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
     <sub-flow name="getAnypointBankTransactionsInfo">
         <http:request config-ref="HTTP_Bank_Accounts_Process_API_Request_Configuration" path="/transactions/aggregate" method="GET" doc:name="Get user's transactions">
             <http:request-builder>
-                <http:query-param paramName="ssn" value="#[flowVars.ssn]"/>
+                <http:query-param paramName="ssn" value="#[flowVars.user.ssn]"/>
+
             </http:request-builder>
         </http:request>
         <dw:transform-message doc:name="Build output">
@@ -57,10 +60,10 @@ read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-payl
 ---
 read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-variable>
         </dw:transform-message>
-        <objectstore:contains config-ref="UserToken__Configuration" key="#[flowVars.userId + '_' + flowVars.bankId]" doc:name="Check token for bank"/>
+        <objectstore:contains config-ref="UserToken__Configuration" key="#[flowVars.user.sub + '_' + flowVars.bankId]" doc:name="Check token for bank"/>
         <choice doc:name="Does the token exist?">
             <when expression="#[payload == true]">
-                <objectstore:retrieve config-ref="UserToken__Configuration" key="#[flowVars.userId + '_' + flowVars.bankId]" targetProperty="token" doc:name="Get token"/>
+                <objectstore:retrieve config-ref="UserToken__Configuration" key="#[flowVars.user.sub + '_' + flowVars.bankId]" targetProperty="token" doc:name="Get token"/>
                 <http:request config-ref="HTTP_Bank_AISP_Request_Configuration" path="/transactions" method="GET" doc:name="Get user's transactions">
                     <http:request-builder>
                         <http:header headerName="Authorization" value="Bearer #[flowVars.token]"/>

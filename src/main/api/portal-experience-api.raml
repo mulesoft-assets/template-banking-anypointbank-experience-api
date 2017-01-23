@@ -4,59 +4,44 @@ version: v1
 baseUri: http://localhost:8081/api/
 
 
-/signin:
-  displayName: User Signin
+traits:
+  secured:
+    headers:
+      Authorization:
+        description: | 
+          Access token in encrypted JWT form obtained by using the /login endpoint. Example: "Bearer <token>"
+        required: true
+        
+
+/login:
+  displayName: User Login
   post:
-    description: Signs in user
+    description: Logs in the user by providing JWT access token
     body: 
-      application/json:
-        example: !include onboarding/signin-request.json
+      application/x-www-form-urlencoded:
+        properties: 
+          username: 
+            required: true
+            description: Username
+          password:
+            required: true
+            description: Password
     responses:
       200:
         body:
           application/json:
-            example: !include onboarding/signin-response.json
+            example: !include session/signin-response.json
       401:
         body:
           application/json:
-            example: !include onboarding/signin-error-response.json
-/signout:
-  displayName: User Signout
-  post:
-    description: Signs out user
-    body: 
-      application/json:
-        example: !include onboarding/signout-request.json
-    responses:
-      200:
-        body:
-          application/json:
-            example: !include onboarding/signout-response.json
-/signup:
-  displayName: User Signup
-  post:
-    description: Signs up user
-    body: 
-      application/json:
-        example: !include onboarding/signup-request.json
-    responses:
-      200:
-        body:
-          application/json:
-            example: !include onboarding/signup-response.json
-      400:
-        body:
-          application/json:
-            example: !include onboarding/signup-error-response.json 
-/user/{userId}:
-  uriParameters:
-    userId:
-      type: string | integer
-      description: User ID
-  /settings:
+            example: !include session/signin-error-response.json
+/user:
+
+  /info:
+    is: [secured]
     displayName: User info
     get:
-      description: GET User settings
+      description: GET User info
       responses:
         200:
           body:
@@ -72,19 +57,17 @@ baseUri: http://localhost:8081/api/
           body:
             application/json:  
   /accounts:
+    is: [secured]
     displayName: Get user's accounts info
     get:
       description: GET user's accounts info from AISP interfaces of banks
-      queryParameters:
-        ssn:
-          type: string | integer
-          example: "124-123-12344"
       responses:
         200:
           body:
             application/json:
               example: !include accounts-response.json
   /transactions/bank/{bankId}/account/{accountId}:
+    is: [secured]
     uriParameters:
       accountId:
         type: string | integer
@@ -95,16 +78,13 @@ baseUri: http://localhost:8081/api/
     displayName: Get transaction history of account of user 
     get:
       description: Get transaction history of account of user from AISP interfaces of banks
-      queryParameters:
-        ssn:
-          type: string | integer
-          example: "124-123-12344"
       responses:
         200:
           body:
             application/json:
               example: !include transactions-response.json
   /register/bank/{bankId}:
+    is: [secured]
     uriParameters:
       bankId:
         type: string | integer
