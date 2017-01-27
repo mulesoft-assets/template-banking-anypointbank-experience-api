@@ -3,6 +3,56 @@ title: Anypoint Bank Portal Experience API
 version: v1
 baseUri: http://localhost:8081/api/
 
+types:
+
+  TransactionInfo:
+    properties:
+      description: string
+      amount: string
+      balance: string
+      transactionDate: datetime
+      isIncome: boolean
+
+  AllAccountsInfo:
+    properties:
+      anypointBank: BankInfo
+      registeredBanks: BankInfo[]
+
+  AccountInfo:
+    properties:
+      accountId:  string
+      amount: string
+      currency: string
+      lastTransactionDate: datetime
+
+  BankInfo:
+    properties:
+      bankName: string
+      bankId: string
+      checking: AccountInfo
+      savings: AccountInfo
+
+  Address:
+    properties:
+      formatted?: string
+      street_address: string
+      locality: string
+      region: string
+      postal_code: string
+      country: string
+  
+  UserInfo:
+    properties:
+      id: string
+      gender:
+        type: string
+        enum: [male, female]
+      ssn: string
+      phone: string
+      name: string
+      username: string
+      address: Address
+
 
 traits:
   secured:
@@ -46,16 +96,19 @@ traits:
         200:
           body:
             application/json:
+              type: UserInfo
               example: !include user-portal-response.json
     put:
       description: PUT user info from Portal
       body:
         application/json:
+          type: UserInfo
           example: !include user-portal-request.json
       responses:
         200:
           body:
             application/json:  
+            
   /accounts:
     is: [secured]
     displayName: Get user's accounts info
@@ -65,7 +118,9 @@ traits:
         200:
           body:
             application/json:
+              type: AllAccountsInfo
               example: !include accounts-response.json
+              
   /transactions/bank/{bankId}/account/{accountId}:
     is: [secured]
     uriParameters:
@@ -82,7 +137,9 @@ traits:
         200:
           body:
             application/json:
+              type: TransactionInfo[]
               example: !include transactions-response.json
+              
   /register/bank/{bankId}:
     is: [secured]
     uriParameters:
