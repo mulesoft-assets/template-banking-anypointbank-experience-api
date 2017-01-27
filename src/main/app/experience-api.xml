@@ -97,23 +97,34 @@ read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-vari
     </flow>
     <flow name="get:/user/info:api-config">
         <flow-ref name="validateToken" doc:name="validateToken"/>
-        <logger level="INFO" doc:name="Logger"/>
-        <http:request config-ref="Identity_service_HTTP" path="users/{id}" method="GET" doc:name="Get user info">
+        <http:request config-ref="Identity_service_HTTP" path="users/{id}" method="GET" doc:name="GET user info">
             <http:request-builder>
                 <http:uri-param paramName="id" value="#[flowVars.user.sub]"/>
             </http:request-builder>
             <http:success-status-code-validator values="200,404"/>
         </http:request>
-        <logger message="#[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
+    </flow>
+    <flow name="put:/user/info:api-config">
+        <flow-ref name="validateToken" doc:name="validateToken"/>
+        <http:request config-ref="Identity_service_HTTP" path="users/{id}" method="PUT" doc:name="PUT user info">
+            <http:request-builder>
+                <http:uri-param paramName="id" value="#[flowVars.user.sub]"/>
+            </http:request-builder>
+        </http:request>
     </flow>
     <flow name="post:/login:api-config">
         <choice doc:name="credentials present">
             <when expression="#[payload != null &amp;&amp; payload.username != null &amp;&amp; payload.password != null]">
-                <http:request config-ref="Identity_service_HTTP" path="authorize" method="GET" doc:name="Validate credentials and get info">
-                    <http:request-builder>
-                        <http:query-param paramName="username" value="#[payload.username]"/>
-                        <http:query-param paramName="password" value="#[payload.password]"/>
-                    </http:request-builder>
+                <dw:transform-message doc:name="prepare for POST">
+                    <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+{
+	username : payload.username,
+	password : payload.password
+}]]></dw:set-payload>
+                </dw:transform-message>
+                <http:request config-ref="Identity_service_HTTP" path="authorize" method="POST" doc:name="Validate credentials and get info">
                     <http:success-status-code-validator values="401,200"/>
                 </http:request>
                 <json:json-to-object-transformer returnClass="java.util.Map" doc:name="JSON to Object"/>

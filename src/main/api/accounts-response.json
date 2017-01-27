@@ -1,6 +1,5 @@
 {
 	"anypointBank": {
-		{
 	      "bankName": "Anypoint Bank",
 	      "bankId": "1",
 	      "checking" :  {
@@ -15,7 +14,6 @@
 	        "currency": "USD",
 	        "lastTransactionDate": "2016-11-23T14:30:00-05:00"
 	      }
-	    }
 	},
 	"registeredBanks": [
 		{
