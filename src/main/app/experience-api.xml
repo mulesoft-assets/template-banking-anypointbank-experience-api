@@ -61,13 +61,13 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 ---
 read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-variable>
         </dw:transform-message>
-        <set-variable variableName="tokenVar" value="${userToken}" doc:name="Set token from AS to tokenVar"/>
+        <flow-ref name="obtainAccessTokenSubFlow" doc:name="obtainAccessTokenSubFlow"/>
         <logger message="token stored: #[flowVars.tokenVar]" level="INFO" doc:name="Logger"/>
         <objectstore:store config-ref="UserToken__Configuration" key="#[flowVars.user.sub + '_' + flowVars.bankId]" value-ref="#[flowVars.tokenVar]" overwrite="true" doc:name="Store user's token"/>
 
     </flow>
     <sub-flow name="obtainAccessTokenSubFlow">
-        <logger message="Preparing request for obtaining token from #[flowVars.bankVar.name] and user id #[flowVars.userId]" level="INFO" doc:name="Log input data for token registration"/>
+        <logger message="Preparing request for obtaining token from #[flowVars.bankVar.name]" level="INFO" doc:name="Log input data for token registration"/>
         <dw:transform-message doc:name="Prepare get token request">
             <dw:set-payload><![CDATA[%dw 1.0
 %output application/java
@@ -76,7 +76,8 @@ read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-vari
 	"code" : payload.code,
 	"client_id" : flowVars.bankVar.clientId,
 	"client_secret" : flowVars.bankVar.clientSecret,
-	"grant_type" : "authorization_code"
+	"grant_type" : "authorization_code",
+	"redirect_uri": flowVars.bankVar.redirectUri
 }
 ]]></dw:set-payload>
         </dw:transform-message>
@@ -87,8 +88,13 @@ read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-vari
 
             </http:request-builder>
         </http:request>
-        <set-variable variableName="tokenVar" value="#[payload.token]" doc:name="Set token from AS to tokenVar"/>
-        <logger message="Received token #[payload.token]" level="INFO" doc:name="Log token"/>
+        <dw:transform-message doc:name="Set token from AS to tokenVar">
+            <dw:set-variable variableName="tokenVar"><![CDATA[%dw 1.0
+%output application/java
+---
+payload.access_token]]></dw:set-variable>
+        </dw:transform-message>
+        <logger message="Received token #[flowVars.tokenVar]" level="INFO" doc:name="Log token"/>
     </sub-flow>
     <flow name="removeTokenFlow">
         <http:listener config-ref="test_config" path="/clear" allowedMethods="GET" doc:name="localhost:8081/api/clear?bank=1&amp;userid=1"/>
