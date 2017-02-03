@@ -101,25 +101,28 @@ read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-vari
         <choice doc:name="Contains token for bank?">
             <when expression="payload == true">
                 <logger message="Getting accounts from bank '#[flowVars.bankId]'" level="INFO" doc:name="Log process"/>
-                <objectstore:retrieve config-ref="UserToken__Configuration" key="#[flowVars.user.sub + '_' + flowVars.bankId]" targetProperty="token" doc:name="Get token"/>
+                <objectstore:retrieve config-ref="UserToken__Configuration" key="#[flowVars.user.sub + '_' + flowVars.bankId]" targetProperty="tokenVar" doc:name="Get tokenVar"/>
                 <enricher source="#[dw('payload')]" target="#[flowVars.info]" doc:name="var info">
                     <http:request config-ref="HTTP_Bank_AISP_Request_Configuration" path="/info" method="GET" doc:name="Get accounts info">
                         <http:request-builder>
-                            <http:header headerName="Authorization" value="Bearer #[flowVars.token]"/>
+                            <http:header headerName="Authorization" value="Bearer #[flowVars.tokenVar.token]"/>
+
                         </http:request-builder>
                     </http:request>
                 </enricher>
                 <enricher source="#[dw('payload')]" target="#[flowVars.balance]" doc:name="var balance">
                     <http:request config-ref="HTTP_Bank_AISP_Request_Configuration" path="/balance" method="GET" doc:name="Get accounts balance">
                         <http:request-builder>
-                            <http:header headerName="Authorization" value="Bearer #[flowVars.token]"/>
+                            <http:header headerName="Authorization" value="Bearer #[flowVars.tokenVar.token]"/>
+
                         </http:request-builder>
                     </http:request>
                 </enricher>
                 <enricher source="#[dw('payload')]" target="#[flowVars.transactions]" doc:name="var transactions">
                     <http:request config-ref="HTTP_Bank_AISP_Request_Configuration" path="/transactions" method="GET" doc:name="Get accounts transactions">
                         <http:request-builder>
-                            <http:header headerName="Authorization" value="Bearer #[flowVars.token]"/>
+                            <http:header headerName="Authorization" value="Bearer #[flowVars.tokenVar.token]"/>
+
                         </http:request-builder>
                     </http:request>
                 </enricher>
@@ -145,7 +148,7 @@ using (
 		amount              : balance[0].balance,
 		currency            : balance[0].currency,
 		lastTransactionDate : transactions[0].completed when not (transactions is :empty) otherwise null
-	}) when not (checkingAccInfo is :empty),
+	}) when (not (checkingAccInfo is :empty )) and (flowVars.tokenVar.scope contains 'checking'),
 	
 	
 	(savings:
@@ -158,7 +161,7 @@ using (
 		amount              : balance[0].balance,
 		currency            : balance[0].currency,
 		lastTransactionDate : transactions[0].completed when not (transactions is :empty) otherwise null
-	}) when not (savingsAccInfo is :empty)
+	}) when (not (savingsAccInfo is :empty)) and (flowVars.tokenVar.scope contains 'savings')
 	
 
 }]]></dw:set-payload>

@@ -12,12 +12,12 @@ http://www.mulesoft.org/schema/mule/objectstore http://www.mulesoft.org/schema/m
 http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
 http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
 http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
-   
+  
     <api-platform-gw:api id="${api.id}" apiName="${api.name}" version="${api.version}" flowRef="experience-apiFlow" doc:name="API Autodiscovery" create="true" />
     
     <context:property-placeholder location="common.properties, mule.${mule.env}.properties" />
     
-    <http:listener-config name="api-listener"  host="0.0.0.0" port="${https.port}" doc:name="HTTP Listener Configuration" protocol="HTTPS" >
+    <http:listener-config name="api-listener"  host="0.0.0.0" port="${https.port}" doc:name="HTTP Listener Configuration" protocol="HTTPS">
         <tls:context>
             <tls:key-store type="jks" path="${keystore.location}" alias="${key.alias}" keyPassword="${key.password}" password="${keystore.password}"/>
         </tls:context>
@@ -25,7 +25,11 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
     
     <apikit:config name="api-config" raml="portal-experience-api.raml" consoleEnabled="true" consolePath="console" doc:name="Router" />
    
-    <http:request-config name="HTTP_Bank_Token_Request_Configuration" protocol="HTTPS" host="#[new URL(flowVars.bankVar.asBaseURL).getHost()]" port="#[new URL(flowVars.bankVar.asBaseURL).getPort()]" basePath="#[new URL(flowVars.bankVar.asBaseURL).getPath()]" doc:name="HTTP Request Configuration"/>
+    <http:request-config name="HTTP_Bank_Token_Request_Configuration" protocol="HTTPS" host="#[new URL(flowVars.bankVar.asBaseURL).getHost()]" port="#[new URL(flowVars.bankVar.asBaseURL).getPort()]" basePath="#[new URL(flowVars.bankVar.asBaseURL).getPath()]" doc:name="HTTP Request Configuration">
+        <tls:context>
+            <tls:trust-store />
+        </tls:context>
+    </http:request-config>
   
     <objectstore:config name="UserToken__Configuration" partition="userTokenPartition" persistent="true" doc:name="ObjectStore: Configuration"/>
     
@@ -61,14 +65,52 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 ---
 read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-variable>
         </dw:transform-message>
+
         <flow-ref name="obtainAccessTokenSubFlow" doc:name="obtainAccessTokenSubFlow"/>
-        <logger message="token stored: #[flowVars.tokenVar]" level="INFO" doc:name="Logger"/>
-        <objectstore:store config-ref="UserToken__Configuration" key="#[flowVars.user.sub + '_' + flowVars.bankId]" value-ref="#[flowVars.tokenVar]" overwrite="true" doc:name="Store user's token"/>
+        <logger message="token stored: #[flowVars.tokenVar] and scope stored #[flowVars.scopeVar]" level="INFO" doc:name="Log token and scope variables"/>
+        <flow-ref name="handleTokenScope" doc:name="handleTokenScope"/>
+
 
     </flow>
+    <sub-flow name="handleTokenScope">
+        <objectstore:contains config-ref="UserToken__Configuration" key="#[flowVars.user.sub + '_' + flowVars.bankId]" doc:name="Key exists?"/>
+        <choice doc:name="Contains token for bank?">
+            <when expression="payload == true">
+                <objectstore:retrieve config-ref="UserToken__Configuration" key="#[flowVars.user.sub + '_' + flowVars.bankId]" targetProperty="existingToken" doc:name="retrieve user's token"/>
+                <dw:transform-message doc:name="handle existing token">
+                    <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+{
+	"token": flowVars.tokenVar,
+	"scope": flowVars.existingToken.scope when 
+	(flowVars.existingToken.scope contains flowVars.scopeVar)
+	otherwise (
+		flowVars.existingToken.scope ++ " " ++ flowVars.scopeVar
+	)
+}]]></dw:set-payload>
+                </dw:transform-message>
+            </when>
+            <otherwise>
+                <dw:transform-message doc:name="handle new token">
+                    <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+{
+	"token": flowVars.tokenVar,
+	"scope": flowVars.scopeVar
+}]]></dw:set-payload>
+                </dw:transform-message>
+
+            </otherwise>
+        </choice>
+        <objectstore:store config-ref="UserToken__Configuration" key="#[flowVars.user.sub + '_' + flowVars.bankId]" value-ref="#[payload]" overwrite="true" doc:name="Store user's token object"/>
+    </sub-flow>
     <sub-flow name="obtainAccessTokenSubFlow">
-        <logger message="Preparing request for obtaining token from #[flowVars.bankVar.name]" level="INFO" doc:name="Log input data for token registration"/>
-        <dw:transform-message doc:name="Prepare get token request">
+        <json:json-to-object-transformer doc:name="JSON to Object"/>
+        <logger message="Preparing request for obtaining token from #[flowVars.bankVar.name] #[message.payloadAs(java.lang.String)] #[payload.getClass()]" level="INFO" doc:name="Log input data for token registration"/>
+
+        <dw:transform-message doc:name="Prepare get token request and store scope">
             <dw:set-payload><![CDATA[%dw 1.0
 %output application/java
 ---
@@ -80,6 +122,10 @@ read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-vari
 	"redirect_uri": flowVars.bankVar.redirectUri
 }
 ]]></dw:set-payload>
+            <dw:set-variable variableName="scopeVar"><![CDATA[%dw 1.0
+%output application/java
+---
+payload.scope]]></dw:set-variable>
         </dw:transform-message>
         <http:request config-ref="HTTP_Bank_Token_Request_Configuration" path="/token" method="POST" doc:name="Obtain token from AS">
             <http:request-builder>
@@ -115,6 +161,7 @@ payload.access_token]]></dw:set-variable>
         <http:request config-ref="Identity_service_HTTP" path="users/{id}" method="PUT" doc:name="PUT user info">
             <http:request-builder>
                 <http:uri-param paramName="id" value="#[flowVars.user.sub]"/>
+                <http:header headerName="Content-Type" value="application/json"/>
             </http:request-builder>
         </http:request>
     </flow>
