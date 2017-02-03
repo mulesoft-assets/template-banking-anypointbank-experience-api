@@ -10,7 +10,6 @@
 	* [Running on Mule ESB stand alone](#runonmuleesbstandalone)
 	* [Running on CloudHub](#runoncloudhub)
 	* [Deploying your Anypoint Template on CloudHub](#deployingyouranypointtemplateoncloudhub)
-	* [Applying policies on CloudHub](#applyingpolicies)
 	* [Properties to be configured (With examples)](#propertiestobeconfigured)
 
 # License Agreement <a name="licenseagreement"/>
@@ -29,7 +28,8 @@ To make this Anypoint Template run, there are certain preconditions that must be
 This Experience API is meant to be deployed to CloudHub and managed using the API Platform Manager.
 
 ### Exposing external endpoints with HTTPS and basic authentication
-+ It is triggered by Anypoint Banking Portal using HTTPS
++ It is triggered by Anypoint Banking Portal using HTTPS. You can follow the [Building an HTTPS Service Tutorial](https://docs.mulesoft.com/runtime-manager/building-an-https-service) to properly configure the HTTPS listener.  
+Requests to the AnypointBank Experience API must contains the Authorization header with bearer JWT session token. The token is generated after successful login is performed by an User on AnypointBank Experience API.    
 
 # Run it! <a name="runit"/>
 Simple steps to get Banking AnypointBank Experience API running.
@@ -75,9 +75,6 @@ Follow other steps defined [here](#runonpremise) and once your app is all set an
 ### Deploying your Anypoint Template on CloudHub <a name="deployingyouranypointtemplateoncloudhub"/>
 Mule Studio provides you with really easy way to deploy your Template directly to CloudHub, for the specific steps to do so please check this [link](http://www.mulesoft.org/documentation/display/current/Deploying+Mule+Applications#DeployingMuleApplications-DeploytoCloudHub)
 
-### Applying policies on CloudHub <a name="applyingpolicies"/>
-When a Mule application is deployed using the Mule API Gateway Runtime, the API Platform allows to dinamically apply different policies that can be used for securizing the application, among many other cases. More information can be found in [Anypoint Platform for APIs](https://docs.mulesoft.com/anypoint-platform-for-apis/applying-runtime-policies)
-
 ## Properties to be configured (With examples) <a name="propertiestobeconfigured"/>
 In order to use this Mule Anypoint Template you need to configure properties (Credentials, configurations, etc.) either in properties file or in CloudHub as Environment Variables. It's necessary to register your Banking Experience API to desired Bank to obtain client_id, client_secret and endpoind URIs.    
 Detailed list with examples:
@@ -116,7 +113,8 @@ Detailed list with examples:
 + anypoint.bank.id `1`
 
 ####API calls configuration
-registered.banks 	```{\
+```
+registered.banks 	{\
 	"2":\
 		{\
 			"name": "Chase",\
@@ -133,4 +131,6 @@ registered.banks 	```{\
 			"asBaseURL" : "https://host:port/basePath", \
 			"aispBaseURL" : "https://host:port/basePath" \
 		}\
-}```
+}
+```
+
