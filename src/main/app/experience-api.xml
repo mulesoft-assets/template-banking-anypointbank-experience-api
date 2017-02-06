@@ -31,7 +31,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         </tls:context>
     </http:request-config>
   
-    <objectstore:config name="UserToken__Configuration" partition="userTokenPartition" persistent="true" doc:name="ObjectStore: Configuration"/>
+    <objectstore:config name="UserToken__Configuration" partition="_defaultUserObjectStore" persistent="true" objectStore-ref="_defaultUserObjectStore" doc:name="ObjectStore: Configuration"/>
     
     <http:request-config name="HTTP_Bank_Accounts_Process_API_Request_Configuration"  host="${api.banking.accounts.host}" port="${api.banking.accounts.port}" basePath="${api.banking.accounts.basepath}" doc:name="HTTP Request Configuration">
         <http:basic-authentication username="${api.banking.accounts.client_id}" password="${api.banking.accounts.client_secret}"/>
