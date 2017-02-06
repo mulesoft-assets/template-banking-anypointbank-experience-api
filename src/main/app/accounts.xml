@@ -69,22 +69,22 @@ using (
 	
 	(checking: 
 		using (
-			transactions = ((flowVars.transactions filter ($.account_id == checkingAccInfo[0].id)) orderBy $.completed)[-1..0]
+			transactions = ((flowVars.transactions filter ($.this_account.id == checkingAccInfo[0].id)) orderBy $.details.completed)[-1..0]
 		){
 		accountId           : checkingAccInfo[0].id,
 		amount              : checkingAccInfo[0].balance.amount,
 		currency            : checkingAccInfo[0].balance.currency,
-		lastTransactionDate : transactions[0].completed when not (transactions is :empty) otherwise null
+		lastTransactionDate : transactions[0].details.completed when not (transactions is :empty) otherwise null
 	}) when not (checkingAccInfo is :empty),
 	
 	(savings:
 		using (
-			transactions = ((flowVars.transactions filter ($.account_id == savingsAccInfo[0].id)) orderBy $.completed)[-1..0]
+			transactions = ((flowVars.transactions filter ($.this_account.id == savingsAccInfo[0].id)) orderBy $.details.completed)[-1..0]
 		){
 		accountId           : savingsAccInfo[0].id,
 		amount              : savingsAccInfo[0].balance.amount,
 		currency            : savingsAccInfo[0].balance.currency,
-		lastTransactionDate : transactions[0].completed when not (transactions is :empty) otherwise null
+		lastTransactionDate : transactions[0].details.completed when not (transactions is :empty) otherwise null
 	}) when not (savingsAccInfo is :empty)
 }]]></dw:set-payload>
         </dw:transform-message>
@@ -142,12 +142,12 @@ using (
 		using (
 			id = checkingAccInfo[0].id,
 			balance = flowVars.balance filter ($.account_id == checkingAccInfo[0].id),
-			transactions = ((flowVars.transactions filter ($.account_id == checkingAccInfo[0].id)) orderBy $.details.completed)[-1..0]
+			transactions = ((flowVars.transactions filter ($.account_id == checkingAccInfo[0].id)) orderBy $.completed)[-1..0]
 		){
 		accountId           : id,
 		amount              : balance[0].balance,
 		currency            : balance[0].currency,
-		lastTransactionDate : transactions[0].details.completed when not (transactions is :empty) otherwise null
+		lastTransactionDate : transactions[0].completed when not (transactions is :empty) otherwise null
 	}) when (not (checkingAccInfo is :empty )) and (flowVars.tokenVar.scope contains 'checking'),
 	
 	
@@ -155,12 +155,12 @@ using (
 		using (
 			id = savingsAccInfo[0].id,
 			balance = flowVars.balance filter ($.account_id == savingsAccInfo[0].id),
-			transactions = ((flowVars.transactions filter ($.account_id == savingsAccInfo[0].id)) orderBy $.details.completed)[-1..0]
+			transactions = ((flowVars.transactions filter ($.account_id == savingsAccInfo[0].id)) orderBy $.completed)[-1..0]
 		){
 		accountId           : id,
 		amount              : balance[0].balance,
 		currency            : balance[0].currency,
-		lastTransactionDate : transactions[0].details.completed when not (transactions is :empty) otherwise null
+		lastTransactionDate : transactions[0].completed when not (transactions is :empty) otherwise null
 	}) when (not (savingsAccInfo is :empty)) and (flowVars.tokenVar.scope contains 'savings')
 	
 
