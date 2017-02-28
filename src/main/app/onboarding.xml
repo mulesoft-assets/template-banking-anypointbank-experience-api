@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata"
+	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" 
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    
+
+	<flow name="post:/signup:api-config">
+        <dw:transform-message doc:name="Transform input JSON into Map and create userData variable">
+        <dw:input-payload mimeType="application/json"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+payload]]></dw:set-payload>
+            <dw:set-variable variableName="userData"><![CDATA[%dw 1.0
+%output application/java
+---
+payload]]></dw:set-variable>
+        </dw:transform-message>
+        <http:request config-ref="Identity_service_HTTP" path="/checkusername" method="GET" doc:name="Call Identity Service GET users by username">
+            <http:request-builder>
+                <http:query-param paramName="username" value="#[payload.username]"/>
+
+
+            </http:request-builder>
+            <http:success-status-code-validator values="200,400"/>
+        </http:request>
+        
+        <choice doc:name="Does user with the same login exist?">
+            <when expression="#[dw('payload')]">
+                <logger message="Login is available" level="INFO" doc:name="Log 'Login is available'"/>
+                <dw:transform-message doc:name="Create POST User request">
+                    <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{
+	username: flowVars.userData.username,
+	password: flowVars.userData.password,
+	name: flowVars.userData.name,
+	phone: flowVars.userData.phone,
+	ssn: flowVars.userData.ssn,
+	email: flowVars.userData.email,
+	gender: flowVars.userData.gender,
+	address :
+		{
+			country: flowVars.userData.address.country,
+			locality: flowVars.userData.address.locality,
+			postal_code: flowVars.userData.address.postal_code,
+			region: flowVars.userData.address.region,
+			street_address: flowVars.userData.address.street_address
+		
+		}
+}]]></dw:set-payload>
+                </dw:transform-message>
+                <flow-ref name="createUsersInAuthServices" doc:name="createUsersInAuthServices"/>
+                <dw:transform-message doc:name="Create JSON response">
+                    <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{
+  "message": "Registration completed successfully. You can log in with your credentials."
+}]]></dw:set-payload>
+                </dw:transform-message>
+                <set-property propertyName="http.status" value="#[message.inboundProperties.'http.status']" doc:name="set HTTP status"/>
+            </when>
+            <otherwise>
+                <logger message="Username is already in use" level="INFO" doc:name="Log 'Username already in use'"/>
+                <set-property propertyName="http.status" value="409" doc:name="HTTP status Property"/>
+                <dw:transform-message doc:name="Create JSON response">
+                    <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{
+  "message": "Username you are trying to set is already in use. Please, choose another one."
+}]]></dw:set-payload>
+                </dw:transform-message>
+            </otherwise>
+        </choice>
+
+	</flow>
+    <flow name="createUsersInAuthServices">
+        <object-to-byte-array-transformer doc:name="Object to Byte Array"/>
+        <scatter-gather doc:name="Scatter-Gather">
+            <http:request config-ref="Identity_service_HTTP" path="/users" method="POST" doc:name="Call Identity Service POST User"/>
+            <http:request config-ref="Identity_service_ex_HTTP" path="/users" method="POST" doc:name="Call External Identity Service POST User"/>
+        </scatter-gather>
+    </flow>
+
+
+</mule>

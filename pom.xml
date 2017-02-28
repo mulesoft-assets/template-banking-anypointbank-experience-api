@@ -120,6 +120,6 @@
 			<version>${mule.version}</version>
 			<scope>provided</scope>
 		</dependency>
-	</dependencies>
+    </dependencies>
 
 </project>

@@ -1,0 +1,17 @@
+{
+  "username": "login",
+  "password": "password",
+  "name": "Peter Pan",
+  "phone": "608-990-9754",
+  "ssn": "123456789",
+  "email": "email@email.com",
+  "gender": "male",
+  "address":
+    {
+      "country": "United States of America",
+      "locality": "San Francisco",
+      "postal_code": "53703",
+      "region": "California",
+      "street_address": "1855 Folsom Street"
+    }
+}

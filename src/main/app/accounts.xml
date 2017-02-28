@@ -14,7 +14,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
     
     <flow name="get:/user/accounts:api-config">
-        <flow-ref name="validateToken" doc:name="validateToken -&gt; var user"/>
+        <flow-ref name="validateToken" doc:name="validateToken"/>
 
         <set-variable variableName="registeredBanksAccountsInfo" value="#[[]]" doc:name="Initialize registeredBanksAccountsInfo variable"/>
         <enricher source="#[dw('payload')]" target="#[flowVars.anypointBankAccountsInfo]" doc:name="var anypointBankAccountsInfo">
