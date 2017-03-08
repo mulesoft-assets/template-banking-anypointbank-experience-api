@@ -23,7 +23,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
     <apikit:config name="api-config" raml="portal-experience-api.raml" consoleEnabled="true" consolePath="console" doc:name="Router" />
     <http:request-config name="HTTP_Bank_Token_Request_Configuration" protocol="HTTPS" host="#[new URL(flowVars.bankVar.asBaseURL).getHost()]" port="#[new URL(flowVars.bankVar.asBaseURL).getPort()]" basePath="#[new URL(flowVars.bankVar.asBaseURL).getPath()]" doc:name="HTTP Request Configuration">
         <tls:context>
-            <tls:trust-store  />
+            <tls:trust-store />
         </tls:context>
     </http:request-config>
     <objectstore:config name="UserToken__Configuration" partition="_defaultUserObjectStore" persistent="true" objectStore-ref="_defaultUserObjectStore" doc:name="ObjectStore: Configuration" />
@@ -33,9 +33,10 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
     </http:request-config>
     <http:request-config name="HTTP_Bank_AISP_Request_Configuration" host="#[new URL(flowVars.bankVar.aispBaseURL).getHost()]" port="#[new URL(flowVars.bankVar.aispBaseURL).getPort()]" basePath="#[new URL(flowVars.bankVar.aispBaseURL).getPath()]" doc:name="HTTP Request Configuration" protocol="HTTPS">
         <tls:context>
-            <tls:trust-store path="${truststore.location}" password="${truststore.password}"  />
+            <tls:trust-store path="${truststore.location}" password="${truststore.password}" />
         </tls:context>
         <http:raml-api-configuration location="aisp-experience-api/banking-aisp-experience-api.raml"/>
+
     </http:request-config>
     
     
@@ -45,7 +46,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 
     
     <flow name="api-main">
-		<http:listener config-ref="api-listener" path="/api/payment/*" doc:name="HTTP" />
+		<http:listener config-ref="api-listener" path="/api/*" doc:name="HTTP" />
 		<logger message="#[message.inboundProperties.'http.method'] #[message.inboundProperties.'http.request.uri' + message.inboundProperties.'http.query.string'] #[&quot;\n&quot; + message.payloadAs(java.lang.String)]" level="INFO" doc:name="Log request" />
 		<apikit:router config-ref="api-config" doc:name="APIkit Router" />
 		<exception-strategy ref="api-apiKitGlobalExceptionMapping" doc:name="Reference Exception Strategy" />
@@ -67,6 +68,44 @@ read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-vari
         <flow-ref name="obtainAccessTokenSubFlow" doc:name="obtainAccessTokenSubFlow" />
         <logger message="token stored: #[flowVars.tokenVar] and scope stored #[flowVars.scopeVar]" level="INFO" doc:name="Log token and scope variables" />
         <flow-ref name="handleTokenScope" doc:name="handleTokenScope" />
+    </flow>
+    <flow name="post:/user/revoke/bank/{bankId}:api-config">
+        <flow-ref name="validateToken" doc:name="validateToken"/>
+        <dw:transform-message doc:name="Set 'scopeVar'">
+        	<dw:input-payload mimeType="application/json"/>
+            <dw:set-variable variableName="scopeVar"><![CDATA[%dw 1.0
+%output application/java
+---
+payload.scope]]></dw:set-variable>
+        </dw:transform-message>
+        <objectstore:contains config-ref="UserToken__Configuration" key="#[flowVars.user.sub + '_' + flowVars.bankId]" doc:name="Key exists?"/>
+        <choice doc:name="Contains token for bank?">
+            <when expression="payload == true">
+                <objectstore:retrieve config-ref="UserToken__Configuration" key="#[flowVars.user.sub + '_' + flowVars.bankId]" targetProperty="existingToken" doc:name="Retrieve user's token"/>
+                <dw:transform-message doc:name="Update token scope">
+                    <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+{
+	token : flowVars.existingToken.token,
+	scope : trim (flowVars.existingToken.scope replace flowVars.scopeVar with "")
+}]]></dw:set-payload>
+                </dw:transform-message>
+                <logger message="Scope removed from token #[payload]" level="INFO" doc:name="Log removed scope from token"/>
+                <choice doc:name="Empty scope?">
+                    <when expression="#[payload.scope.equals(&quot;&quot;)]">
+                        <objectstore:remove config-ref="UserToken__Configuration" key="#[flowVars.user.sub + '_' + flowVars.bankId]" doc:name="Remove user's token"/>
+                    </when>
+                    <otherwise>
+                        <objectstore:store config-ref="UserToken__Configuration" key="#[flowVars.user.sub + '_' + flowVars.bankId]" value-ref="#[payload]" overwrite="true" doc:name="Update user's scope"/>
+                    </otherwise>
+                </choice>
+            </when>
+            <otherwise>
+                <flow-ref name="invalidTokenSubFlow" doc:name="invalidTokenSubFlow"/>
+                <logger message="Token not present in ObjectStore" level="INFO" doc:name="Log token not present"/>
+            </otherwise>
+        </choice>
     </flow>
     <sub-flow name="handleTokenScope">
         <objectstore:contains config-ref="UserToken__Configuration" key="#[flowVars.user.sub + '_' + flowVars.bankId]" doc:name="Key exists?"/>
@@ -271,6 +310,10 @@ return jwtClaims.getClaimsMap();]]></scripting:script>
     <sub-flow name="unauthorizedSubFlow">
         <set-payload value="{ &quot;message&quot;: &quot;Unauthorized&quot; ,&quot;service&quot; : &quot;AnypointBankExperienceAPI&quot;}" doc:name="Unauthenticated"/>
         <set-property propertyName="http.status" value="401" doc:name="401"/>
+    </sub-flow>
+    <sub-flow name="invalidTokenSubFlow">
+        <set-payload value="{ &quot;message&quot;: &quot;Invalid token&quot; ,&quot;service&quot; : &quot;AnypointBankExperienceAPI&quot;}" doc:name="Invalid token"/>
+        <set-property propertyName="http.status" value="500" doc:name="500"/>
     </sub-flow>
 
     <apikit:mapping-exception-strategy name="api-apiKitGlobalExceptionMapping">
