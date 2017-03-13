@@ -40,9 +40,9 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
     </http:request-config>
     
     
-    <http:listener-config name="test_config" host="0.0.0.0" port="8081" basePath="/api" doc:name="HTTP Listener Configuration" />
     <http:request-config name="Identity_service_HTTP" protocol="HTTPS" host="${identity_service.host}" port="${identity_service.port}" basePath="${identity_service.basePath}" doc:name="HTTP Request Configuration" />
     <http:request-config name="Identity_service_ex_HTTP" protocol="HTTPS" host="${identity_service_ex.host}" port="${identity_service_ex.port}" basePath="${identity_service_ex.basePath}" doc:name="HTTP Request Configuration" />
+    <http:request-config name="Salesforce_system_api_HTTP" host="${salesforce_system_api.host}" port="${salesforce_system_api.port}" basePath="${salesforce_system_api.basePath}" doc:name="HTTP Request Configuration" protocol="HTTPS"/>
 
     
     <flow name="api-main">
@@ -177,11 +177,6 @@ payload.access_token]]></dw:set-variable>
         </dw:transform-message>
         <logger message="Received token #[flowVars.tokenVar]" level="INFO" doc:name="Log token"/>
     </sub-flow>
-    <flow name="removeTokenFlow">
-        <http:listener config-ref="test_config" path="/clear" allowedMethods="GET" doc:name="localhost:8081/api/clear?bank=1&amp;userid=1"/>
-        <objectstore:remove config-ref="UserToken__Configuration" key="#[message.inboundProperties.'http.query.params'.userid + &quot;_&quot; + message.inboundProperties.'http.query.params'.bank]" ignoreNotExists="true" doc:name="Remove by key"/>
-        <set-payload value="Object under key #[message.inboundProperties.'http.query.params'.userid + &quot;_&quot; + message.inboundProperties.'http.query.params'.bank] was removed!" doc:name="Response"/>
-    </flow>
     <flow name="get:/user/info:api-config">
         <flow-ref name="validateToken" doc:name="validateToken"/>
         <http:request config-ref="Identity_service_HTTP" path="users/{id}" method="GET" doc:name="GET user info">
@@ -190,15 +185,102 @@ payload.access_token]]></dw:set-variable>
             </http:request-builder>
             <http:success-status-code-validator values="200,404"/>
         </http:request>
+        <dw:transform-message doc:name="Create userData variable">
+            <dw:set-variable variableName="userData"><![CDATA[%dw 1.0
+%output application/java
+---
+payload]]></dw:set-variable>
+        </dw:transform-message>
+        <http:request config-ref="Salesforce_system_api_HTTP" path="/contact" method="GET" doc:name="Call Salesforce system API GET Contact">
+            <http:request-builder>
+                <http:query-param paramName="email" value="#[flowVars.userData.email]"/>
+            </http:request-builder>
+        </http:request>
+        <dw:transform-message doc:name="Create JSON user info response">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{
+	address: {
+		street_address: payload.address.street,
+	    locality: payload.address.city,
+	    region: payload.address.state,
+	    postal_code: payload.address.zipCode,
+	    country: payload.address.country	
+	},
+	email: flowVars.userData.email,
+	gender: flowVars.userData.gender,
+	id: flowVars.userData.id,
+	name: flowVars.userData.name,
+	phone: flowVars.userData.phone,
+	ssn: flowVars.userData.ssn,
+	username: flowVars.userData.username
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <set-property propertyName="http.status" value="#[message.inboundProperties.'http.status']" doc:name="set HTTP status"/>
     </flow>
     <flow name="put:/user/info:api-config">
         <flow-ref name="validateToken" doc:name="validateToken"/>
-        <http:request config-ref="Identity_service_HTTP" path="users/{id}" method="PUT" doc:name="PUT user info">
-            <http:request-builder>
-                <http:uri-param paramName="id" value="#[flowVars.user.sub]"/>
-                <http:header headerName="Content-Type" value="application/json"/>
-            </http:request-builder>
-        </http:request>
+        <scatter-gather doc:name="Scatter-Gather">
+            <processor-chain>
+                <dw:transform-message doc:name="Create PUT User request">
+                    <dw:set-payload><![CDATA[%dw 1.0
+%output application/json 
+--- 
+{
+	username: payload.username,
+	name: payload.name,
+	phone: payload.phone,
+	ssn: payload.ssn,
+	email: payload.email,
+	gender: payload.gender
+}]]></dw:set-payload>
+                </dw:transform-message>
+                <http:request config-ref="Identity_service_HTTP" path="users/{id}" method="PUT" doc:name="PUT user info">
+                    <http:request-builder>
+                        <http:uri-param paramName="id" value="#[flowVars.user.sub]"/>
+                        <http:header headerName="Content-Type" value="application/json"/>
+                    </http:request-builder>
+                </http:request>
+            </processor-chain>
+            <processor-chain>
+                <dw:transform-message doc:name="Create PUT Contact request and userEmail variable">
+                    <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{
+	firstName: (payload.name splitBy " ")[0],
+	lastName: (payload.name splitBy " ")[1],
+	address: {
+		street: payload.address.street_address,
+		city: payload.address.locality,
+		zipCode: payload.address.postal_code,
+		state: payload.address.region,
+		country: payload.address.country
+  	},
+	email: payload.email
+}]]></dw:set-payload>
+                    <dw:set-variable variableName="userEmail"><![CDATA[%dw 1.0
+%output application/java
+---
+payload.email]]></dw:set-variable>
+                </dw:transform-message>
+                <http:request config-ref="Salesforce_system_api_HTTP" path="/contact" method="PUT" doc:name="Call Salesforce system API PUT Contact">
+                    <http:request-builder>
+                        <http:query-param paramName="email" value="#[flowVars.userEmail]"/>
+                    </http:request-builder>
+                </http:request>
+            </processor-chain>
+        </scatter-gather>
+        <dw:transform-message doc:name="Create JSON response">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{
+  "message": "Update completed successfully."
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <set-property propertyName="http.status" value="#[message.inboundProperties.'http.status']" doc:name="set HTTP status"/>
     </flow>
     <flow name="post:/login:api-config">
         <choice doc:name="credentials present">
