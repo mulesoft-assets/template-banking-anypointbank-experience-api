@@ -220,6 +220,7 @@ payload]]></dw:set-variable>
         <set-property propertyName="http.status" value="#[message.inboundProperties.'http.status']" doc:name="set HTTP status"/>
     </flow>
     <flow name="put:/user/info:api-config">
+        <set-property propertyName="Content-Type" value="application/json" doc:name="Set Content-type to Json"/>
         <flow-ref name="validateToken" doc:name="validateToken"/>
         <scatter-gather doc:name="Scatter-Gather">
             <processor-chain>
