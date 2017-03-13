@@ -27,18 +27,19 @@ payload]]></dw:set-payload>
 ---
 payload]]></dw:set-variable>
         </dw:transform-message>
-        <http:request config-ref="Identity_service_HTTP" path="/checkusername" method="GET" doc:name="Call Identity Service GET users by username">
+        <http:request config-ref="Identity_service_HTTP" path="/checkuser" method="GET" doc:name="Call Identity Service GET users by username and email">
             <http:request-builder>
                 <http:query-param paramName="username" value="#[payload.username]"/>
+                <http:query-param paramName="email" value="#[payload.email]"/>
 
 
             </http:request-builder>
             <http:success-status-code-validator values="200,400"/>
         </http:request>
         
-        <choice doc:name="Does user with the same login exist?">
+        <choice doc:name="Does user with the same username or email exist?">
             <when expression="#[dw('payload')]">
-                <logger message="Login is available" level="INFO" doc:name="Log 'Login is available'"/>
+                <logger message="Login and email are available" level="INFO" doc:name="Log 'Login and email are available'"/>
                 <flow-ref name="createUsersInAuthServices" doc:name="createUsersInAuthServices"/>
                 <flow-ref name="createContactInSalesforce" doc:name="createContactInSalesforce"/>
                 <dw:transform-message doc:name="Create JSON response">
@@ -52,7 +53,7 @@ payload]]></dw:set-variable>
                 <set-property propertyName="http.status" value="#[message.inboundProperties.'http.status']" doc:name="set HTTP status"/>
             </when>
             <otherwise>
-                <logger message="Username is already in use" level="INFO" doc:name="Log 'Username already in use'"/>
+                <logger message="Username or email is already in use" level="INFO" doc:name="Log 'Username or email already in use'"/>
                 <set-property propertyName="http.status" value="409" doc:name="HTTP status Property"/>
                 <dw:transform-message doc:name="Create JSON response">
                     <dw:set-payload><![CDATA[%dw 1.0
