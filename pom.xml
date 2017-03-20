@@ -15,6 +15,7 @@
 
 	<properties>
 		<skip.readme.generation>true</skip.readme.generation>
+		<jose4j.version>0.5.5</jose4j.version>
 	</properties>
 
 	<scm>
@@ -112,7 +113,7 @@
 		<dependency>
 			<groupId>org.bitbucket.b_c</groupId>
 			<artifactId>jose4j</artifactId>
-			<version>0.5.2</version>
+			<version>${jose4j.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.mule.modules</groupId>
