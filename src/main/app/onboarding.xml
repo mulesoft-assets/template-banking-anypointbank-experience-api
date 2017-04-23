@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http"
 	xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata"
 	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" 
 	xmlns="http://www.mulesoft.org/schema/mule/core"
@@ -12,7 +12,8 @@
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
-http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
     
 
 	<flow name="post:/signup:api-config">
@@ -36,9 +37,10 @@ payload]]></dw:set-variable>
             </http:request-builder>
             <http:success-status-code-validator values="200,400"/>
         </http:request>
+        <json:json-to-object-transformer doc:name="JSON to Object"/>
         
         <choice doc:name="Does user with the same username or email exist?">
-            <when expression="#[dw('payload')]">
+            <when expression="#[payload]">
                 <logger message="Login and email are available" level="INFO" doc:name="Log 'Login and email are available'"/>
                 <flow-ref name="createUsersInAuthServices" doc:name="createUsersInAuthServices"/>
                 <flow-ref name="createContactInSalesforce" doc:name="createContactInSalesforce"/>

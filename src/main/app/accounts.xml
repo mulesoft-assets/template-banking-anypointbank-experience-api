@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:context="http://www.springframework.org/schema/context"
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:context="http://www.springframework.org/schema/context"
 	xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:objectstore="http://www.mulesoft.org/schema/mule/objectstore" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -11,7 +11,8 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/objectstore http://www.mulesoft.org/schema/mule/objectstore/current/mule-objectstore.xsd
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
-http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
     
     <flow name="get:/user/accounts:api-config">
         <flow-ref name="validateToken" doc:name="validateToken"/>
@@ -40,21 +41,27 @@ http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/
         <logger message="#[message.inboundProperties.'http.host' + message.inboundProperties.'http.request.uri'] has finished processing." level="INFO" doc:name="Log success"/>
     </flow>
     <sub-flow name="getAnypointBankAccountsInfo">
-        <enricher source="#[dw('payload')]" target="#[flowVars.info]" doc:name="var info">
-            <http:request config-ref="HTTP_Bank_Accounts_Process_API_Request_Configuration" path="/accounts/aggregate" method="GET" doc:name="Get accounts info">
-                <http:request-builder>
-                    <http:query-param paramName="ssn" value="#[flowVars.user.ssn]"/>
+        <enricher source="#[payload]" target="#[flowVars.info]" doc:name="var info">
+            <processor-chain doc:name="Processor Chain">
+                <http:request config-ref="HTTP_Bank_Accounts_Process_API_Request_Configuration" path="/accounts/aggregate" method="GET" doc:name="Get accounts info">
+                    <http:request-builder>
+                        <http:query-param paramName="ssn" value="#[flowVars.user.ssn]"/>
+                    </http:request-builder>
+                </http:request>
+                <json:json-to-object-transformer doc:name="JSON to Object"/>
+            </processor-chain>
 
-                </http:request-builder>
-            </http:request>
         </enricher>
-        <enricher source="#[dw('payload')]" target="#[flowVars.transactions]" doc:name="var transactions">
-            <http:request config-ref="HTTP_Bank_Accounts_Process_API_Request_Configuration" path="/transactions/aggregate" method="GET" doc:name="Get accounts transactions">
-                <http:request-builder>
-                    <http:query-param paramName="ssn" value="#[flowVars.user.ssn]"/>
+        <enricher source="#[payload]" target="#[flowVars.transactions]" doc:name="var transactions">
+            <processor-chain doc:name="Processor Chain">
+                <http:request config-ref="HTTP_Bank_Accounts_Process_API_Request_Configuration" path="/transactions/aggregate" method="GET" doc:name="Get accounts transactions">
+                    <http:request-builder>
+                        <http:query-param paramName="ssn" value="#[flowVars.user.ssn]"/>
+                    </http:request-builder>
+                </http:request>
+                <json:json-to-object-transformer doc:name="JSON to Object"/>
+            </processor-chain>
 
-                </http:request-builder>
-            </http:request>
         </enricher>
         <dw:transform-message doc:name="Build account info">
             <dw:set-payload><![CDATA[%dw 1.0
@@ -102,29 +109,38 @@ read(p('registered.banks'), "application/json")[flowVars.bankId]]]></dw:set-vari
             <when expression="payload == true">
                 <logger message="Getting accounts from bank '#[flowVars.bankId]'" level="INFO" doc:name="Log process"/>
                 <objectstore:retrieve config-ref="UserToken__Configuration" key="#[flowVars.user.sub + '_' + flowVars.bankId]" targetProperty="tokenVar" doc:name="Get tokenVar"/>
-                <enricher source="#[dw('payload')]" target="#[flowVars.info]" doc:name="var info">
-                    <http:request config-ref="HTTP_Bank_AISP_Request_Configuration" path="/info" method="GET" doc:name="Get accounts info">
-                        <http:request-builder>
-                            <http:header headerName="Authorization" value="Bearer #[flowVars.tokenVar.token]"/>
+                <enricher source="#[payload]" target="#[flowVars.info]" doc:name="var info">
+                    <processor-chain doc:name="Processor Chain">
+                        <http:request config-ref="HTTP_Bank_AISP_Request_Configuration" path="/info" method="GET" doc:name="Get accounts info">
+                            <http:request-builder>
+                                <http:header headerName="Authorization" value="Bearer #[flowVars.tokenVar.token]"/>
+                            </http:request-builder>
+                        </http:request>
+                        <json:json-to-object-transformer doc:name="JSON to Object"/>
+                    </processor-chain>
 
-                        </http:request-builder>
-                    </http:request>
                 </enricher>
-                <enricher source="#[dw('payload')]" target="#[flowVars.balance]" doc:name="var balance">
-                    <http:request config-ref="HTTP_Bank_AISP_Request_Configuration" path="/balance" method="GET" doc:name="Get accounts balance">
-                        <http:request-builder>
-                            <http:header headerName="Authorization" value="Bearer #[flowVars.tokenVar.token]"/>
+                <enricher source="#[payload]" target="#[flowVars.balance]" doc:name="var balance">
+                    <processor-chain doc:name="Processor Chain">
+                        <http:request config-ref="HTTP_Bank_AISP_Request_Configuration" path="/balance" method="GET" doc:name="Get accounts balance">
+                            <http:request-builder>
+                                <http:header headerName="Authorization" value="Bearer #[flowVars.tokenVar.token]"/>
+                            </http:request-builder>
+                        </http:request>
+                        <json:json-to-object-transformer doc:name="JSON to Object"/>
+                    </processor-chain>
 
-                        </http:request-builder>
-                    </http:request>
                 </enricher>
-                <enricher source="#[dw('payload')]" target="#[flowVars.transactions]" doc:name="var transactions">
-                    <http:request config-ref="HTTP_Bank_AISP_Request_Configuration" path="/transactions" method="GET" doc:name="Get accounts transactions">
-                        <http:request-builder>
-                            <http:header headerName="Authorization" value="Bearer #[flowVars.tokenVar.token]"/>
+                <enricher source="#[payload]" target="#[flowVars.transactions]" doc:name="var transactions">
+                    <processor-chain doc:name="Processor Chain">
+                        <http:request config-ref="HTTP_Bank_AISP_Request_Configuration" path="/transactions" method="GET" doc:name="Get accounts transactions">
+                            <http:request-builder>
+                                <http:header headerName="Authorization" value="Bearer #[flowVars.tokenVar.token]"/>
+                            </http:request-builder>
+                        </http:request>
+                        <json:json-to-object-transformer doc:name="JSON to Object"/>
+                    </processor-chain>
 
-                        </http:request-builder>
-                    </http:request>
                 </enricher>
                 <dw:transform-message doc:name="Build account Info">
                     <dw:set-payload><![CDATA[%dw 1.0

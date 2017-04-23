@@ -16,7 +16,8 @@
 	<properties>
 		<skip.readme.generation>true</skip.readme.generation>
 		<jose4j.version>0.5.5</jose4j.version>
-	</properties>
+	<mule.version>3.8.4</mule.version>
+    </properties>
 
 	<scm>
 		<connection>scm:git:https://github.com/mulesoft/template-banking-anypointbank-experience-api.git</connection>
