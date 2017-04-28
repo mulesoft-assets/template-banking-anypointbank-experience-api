@@ -32,11 +32,10 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <http:raml-api-configuration location="banking-accounts-process-api/template-banking-accounts-process-api.raml" />
     </http:request-config>
     <http:request-config name="HTTP_Bank_AISP_Request_Configuration" host="#[new URL(flowVars.bankVar.aispBaseURL).getHost()]" port="#[new URL(flowVars.bankVar.aispBaseURL).getPort()]" basePath="#[new URL(flowVars.bankVar.aispBaseURL).getPath()]" doc:name="HTTP Request Configuration" protocol="HTTPS">
-        <tls:context>
-            <tls:trust-store path="${truststore.location}" password="${truststore.password}" />
+    	<tls:context>
+ 	       <tls:trust-store path="${truststore.location}" password="${truststore.password}" />
         </tls:context>
         <http:raml-api-configuration location="aisp-experience-api/banking-aisp-experience-api.raml"/>
-
     </http:request-config>
     
     
@@ -186,6 +185,7 @@ payload.access_token]]></dw:set-variable>
             <http:success-status-code-validator values="200,404"/>
         </http:request>
         <dw:transform-message doc:name="Create userData variable">
+        <dw:input-payload mimeType="application/json"/>
             <dw:set-variable variableName="userData"><![CDATA[%dw 1.0
 %output application/java
 ---
