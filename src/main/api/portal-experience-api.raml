@@ -41,14 +41,18 @@ types:
       region: string
       postal_code: string
       country: string
-  
+
+  SSN:
+    type: string
+    pattern: ^\d{3}-\d{2}-\d{4}$
+
   UserInfo:
     properties:
       id: string
       gender:
         type: string
         enum: [male, female]
-      ssn: string
+      ssn: SSN
       phone: string
       name: string
       username: string
@@ -59,19 +63,19 @@ traits:
   secured:
     headers:
       Authorization:
-        description: | 
+        description: |
           Access token in encrypted JWT form obtained by using the /login endpoint. Example: "Bearer <token>"
         required: true
-        
+
 
 /login:
   displayName: User Login
   post:
     description: Logs in the user by providing JWT access token
-    body: 
+    body:
       application/x-www-form-urlencoded:
-        properties: 
-          username: 
+        properties:
+          username:
             required: true
             description: Username
           password:
@@ -108,8 +112,8 @@ traits:
       responses:
         200:
           body:
-            application/json:  
-            
+            application/json:
+
   /accounts:
     is: [secured]
     displayName: Get user's accounts info
@@ -121,7 +125,7 @@ traits:
             application/json:
               type: AllAccountsInfo
               example: !include accounts-response.json
-              
+
   /transactions/bank/{bankId}/account/{accountId}:
     is: [secured]
     uriParameters:
@@ -131,7 +135,7 @@ traits:
       bankId:
         type: string | integer
         description: Bank ID
-    displayName: Get transaction history of account of user 
+    displayName: Get transaction history of account of user
     get:
       description: Get transaction history of account of user from AISP interfaces of banks
       responses:
@@ -140,7 +144,7 @@ traits:
             application/json:
               type: TransactionInfo[]
               example: !include transactions-response.json
-              
+
   /register/bank/{bankId}:
     is: [secured]
     uriParameters:
@@ -150,7 +154,7 @@ traits:
     displayName: Register User using code retrieved from Auth Server
     post:
       description: Finish security dance with Auth Server using user's code and clientId and secret of registered app
-      body: 
+      body:
         application/json:
           example: !include register/register-request.json
       responses:
@@ -158,8 +162,8 @@ traits:
         400:
           body:
             application/json:
-              example: !include register/register-error-response.json  
-         
+              example: !include register/register-error-response.json
+
   /revoke/bank/{bankId}:
     is: [secured]
     uriParameters:
@@ -169,7 +173,7 @@ traits:
     displayName: Revoke User using code retrieved from Auth Server
     post:
       description: Finish security dance with Auth Server using user's code and clientId and secret of registered app
-      body: 
+      body:
         application/json:
           example: !include revoke/revoke-request.json
       responses:
@@ -177,14 +181,14 @@ traits:
         400:
           body:
             application/json:
-              example: !include revoke/revoke-error-response.json  
-    
+              example: !include revoke/revoke-error-response.json
+
 
 /signup:
   displayName: User Signup
   post:
     description: Signs up user
-    body: 
+    body:
       application/json:
         example: !include onboarding/signup-request.json
     responses:
