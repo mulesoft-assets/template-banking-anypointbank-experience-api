@@ -1,3 +1,7 @@
+  SSN:
+    type: string
+    pattern: ^\d{3}-?\d{2}-?\d{4}$
+
   Address:
     properties:
       address_line_1: string
@@ -19,7 +23,7 @@
       display_name?: string
       phone: string
       email: string
-      ssn: string
+      ssn: SSN
       date_of_birth: date-only
       
   Metadata:
@@ -46,7 +50,7 @@
   AccountOwner:
     properties:  
       user_id: string
-      ssn: string
+      ssn: SSN
       display_name: string
 
   Account:
