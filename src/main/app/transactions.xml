@@ -34,6 +34,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
             </http:request-builder>
         </http:request>
         <dw:transform-message doc:name="Build output">
+        <dw:input-payload mimeType="application/json"/>
             <dw:set-payload><![CDATA[%dw 1.0
 %output application/java
 ---
