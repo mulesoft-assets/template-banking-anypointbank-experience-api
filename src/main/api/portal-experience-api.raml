@@ -90,8 +90,24 @@ traits:
         body:
           application/json:
             example: !include session/signin-error-response.json
-/user:
 
+/checkssn :
+    displayName: Check User's ssn existence
+    get:
+      queryParameters:
+        ssn:
+          type: SSN
+          description: SSN
+      responses:
+        200:
+          body:
+            application/json:
+              example: |
+                { "exists" : true,
+                  "message" : "User with SSN exists"
+                }
+                            
+/user:              
   /info:
     is: [secured]
     displayName: User info

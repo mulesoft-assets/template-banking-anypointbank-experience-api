@@ -20,7 +20,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         </tls:context>
     </http:listener-config>
 
-    <apikit:config name="api-config" raml="portal-experience-api.raml" consoleEnabled="true" consolePath="console" doc:name="Router" />
+    <apikit:config name="api-config" raml="portal-experience-api.raml" consoleEnabled="true" consolePath="console" doc:name="Router" keepRamlBaseUri="false"/>
     <http:request-config name="HTTP_Bank_Token_Request_Configuration" protocol="HTTPS" host="#[new URL(flowVars.bankVar.asBaseURL).getHost()]" port="#[new URL(flowVars.bankVar.asBaseURL).getPort()]" basePath="#[new URL(flowVars.bankVar.asBaseURL).getPath()]" doc:name="HTTP Request Configuration">
         <tls:context>
             <tls:trust-store />
@@ -29,7 +29,8 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
     <objectstore:config name="UserToken__Configuration" partition="_defaultUserObjectStore" persistent="true" objectStore-ref="_defaultUserObjectStore" doc:name="ObjectStore: Configuration" />
     <http:request-config name="HTTP_Bank_Accounts_Process_API_Request_Configuration" host="${api.banking.accounts.host}" port="${api.banking.accounts.port}" basePath="${api.banking.accounts.basePath}" doc:name="HTTP Request Configuration">
         <http:basic-authentication username="${api.banking.accounts.client_id}" password="${api.banking.accounts.client_secret}" />
-        <http:raml-api-configuration location="banking-accounts-process-api/template-banking-accounts-process-api.raml" />
+        <http:raml-api-configuration location="banking-accounts-process-api/template-banking-accounts-process-api.raml"/>
+
     </http:request-config>
     <http:request-config name="HTTP_Bank_AISP_Request_Configuration" host="#[new URL(flowVars.bankVar.aispBaseURL).getHost()]" port="#[new URL(flowVars.bankVar.aispBaseURL).getPort()]" basePath="#[new URL(flowVars.bankVar.aispBaseURL).getPath()]" doc:name="HTTP Request Configuration" protocol="HTTPS">
     	<tls:context>
@@ -46,7 +47,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
     
     <flow name="api-main">
 		<http:listener config-ref="api-listener" path="/api/*" doc:name="HTTP" />
-		<logger message="#[message.inboundProperties.'http.method'] #[message.inboundProperties.'http.request.uri' + message.inboundProperties.'http.query.string'] #[&quot;\n&quot; + message.payloadAs(java.lang.String)]" level="INFO" doc:name="Log request" />
+		<logger message="#[message.inboundProperties.'http.method'] #[message.inboundProperties.'http.request.uri'] #[&quot;\n&quot; + message.payloadAs(java.lang.String)]" level="INFO" doc:name="Log request" />
 		<apikit:router config-ref="api-config" doc:name="APIkit Router" />
 		<exception-strategy ref="api-apiKitGlobalExceptionMapping" doc:name="Reference Exception Strategy" />
 	</flow>
@@ -218,6 +219,25 @@ payload]]></dw:set-variable>
 }]]></dw:set-payload>
         </dw:transform-message>
         <set-property propertyName="http.status" value="#[message.inboundProperties.'http.status']" doc:name="set HTTP status"/>
+    </flow>
+    <flow name="get:/checkssn:api-config">
+    	<set-variable variableName="ssn" value="#[message.inboundProperties.'http.query.params'.ssn.replaceAll(&quot;-&quot;, &quot;&quot;)]" doc:name="Set ssn variable"/>
+        <http:request config-ref="HTTP_Bank_Accounts_Process_API_Request_Configuration" path="/accounts/aggregate" method="GET" doc:name="Get accounts info">
+                    <http:request-builder>
+                        <http:query-param paramName="ssn" value="#[flowVars.ssn]"/>
+                    </http:request-builder>
+        </http:request>
+        <dw:transform-message doc:name="Create JSON response">
+        	<dw:input-payload mimeType="application/json"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{
+	"exists" : not payload is :empty,
+	"message" : ("User with SSN $(flowVars.ssn) exists" when (not payload is :empty) otherwise "User with SSN $(flowVars.ssn) doesn't exist")
+}]]></dw:set-payload>
+        </dw:transform-message>
+
     </flow>
     <flow name="put:/user/info:api-config">
         <set-property propertyName="Content-Type" value="application/json" doc:name="Set Content-type to Json"/>
