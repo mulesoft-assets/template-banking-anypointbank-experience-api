@@ -103,10 +103,19 @@ Detailed list with examples:
 + identity_service.port `443`
 + identity_service.basePath `/api`
 
++ identity_service_ex.host `identity-ex.example.com`
++ identity_service_ex.port `443`
++ identity_service_ex.basePath `/api`
+
 ####JWT session token details
 + access_token.issuer `https://anypoint-bank.example.com`
 + access_token.validity.minutes `30`
 + access_token.encryption_key.path `aes-key.jwk`
+
+####Accounts process API
++ api.banking.accounts.host `http://account-process-api.com`
++ api.banking.accounts.port `80`
++ api.banking.accounts.basePath `/api`
 
 ####Anypoint Bank
 + anypoint.bank.name `Anypoint Bank`
@@ -121,6 +130,7 @@ registered.banks 	{\
 			"clienId": "client_id",\
 			"clientSecret": "client_secret",\
 			"asBaseURL" : "https://host:port/basePath", \
+			"redirectUri" : "https://host:port/redirectPath", \
 			"aispBaseURL" : "https://host:port/basePath" \
 		},\
 	"3":\
@@ -129,6 +139,7 @@ registered.banks 	{\
 			"clienId": "client_id",\
 			"clientSecret": "client_secret",\
 			"asBaseURL" : "https://host:port/basePath", \
+			"redirectUri" : "https://host:port/redirectPath", \
 			"aispBaseURL" : "https://host:port/basePath" \
 		}\
 }

@@ -102,10 +102,7 @@ traits:
         200:
           body:
             application/json:
-              example: |
-                { "exists" : true,
-                  "message" : "User with SSN exists"
-                }
+              example: !include checkssn-response.json
                             
 /user:              
   /info:
