@@ -50,7 +50,7 @@ public class TokenUtils {
 		try {
 			OctetSequenceJsonWebKey aesKey = (OctetSequenceJsonWebKey) JsonWebKey.Factory.newJwk(aesKeyString);
 
-			JwtConsumer jwtConsumer = new JwtConsumerBuilder().setDisableRequireSignature().setSkipSignatureVerification().setSkipAllValidators().setRequireExpirationTime()
+			JwtConsumer jwtConsumer = new JwtConsumerBuilder().setDisableRequireSignature().setRequireExpirationTime()
 					.setJweAlgorithmConstraints(new AlgorithmConstraints(ConstraintType.WHITELIST, "dir"))
 					.setMaxFutureValidityInMinutes(360).setExpectedIssuer(issuer).setDecryptionKey(aesKey.getKey())
 					.build();
