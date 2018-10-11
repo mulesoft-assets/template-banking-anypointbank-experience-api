@@ -1,0 +1,711 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:java="http://www.mulesoft.org/schema/mule/java"
+	xmlns:banking-aisp-experience-api="http://www.mulesoft.org/schema/mule/banking-aisp-experience-api" 
+	xmlns:banking-authorization-server="http://www.mulesoft.org/schema/mule/banking-authorization-server"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:banking-contact-system-api="http://www.mulesoft.org/schema/mule/banking-contact-system-api" 
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:validation="http://www.mulesoft.org/schema/mule/validation" 
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" 
+	xmlns:banking-accounts-process-api="http://www.mulesoft.org/schema/mule/banking-accounts-process-api" 
+	xmlns="http://www.mulesoft.org/schema/mule/core" 
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd 
+ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/banking-accounts-process-api http://www.mulesoft.org/schema/mule/banking-accounts-process-api/current/mule-banking-accounts-process-api.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/banking-contact-system-api http://www.mulesoft.org/schema/mule/banking-contact-system-api/current/mule-banking-contact-system-api.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/banking-authorization-server http://www.mulesoft.org/schema/mule/banking-authorization-server/current/mule-banking-authorization-server.xsd
+http://www.mulesoft.org/schema/mule/banking-aisp-experience-api http://www.mulesoft.org/schema/mule/banking-aisp-experience-api/current/mule-banking-aisp-experience-api.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+
+<flow name="checkSSN" doc:id="72482659-fb78-4c28-9de9-a7c756153e76" >
+		<set-variable value='#[attributes.queryParams.ssn replace "-" with ""]' doc:name="Set ssn variable" doc:id="f414c873-1a43-46dd-ab9a-0d9c71f89e1e" variableName="ssn"/>
+		<banking-accounts-process-api:aggregate-user-accounts doc:name="Get accounts info" doc:id="ebab6b8f-95f0-4780-a98d-ffed5208ff35" config-ref="Banking_Accounts_Process_API_Config" ssn="#[vars.ssn]"/>
+		<ee:transform doc:name="Create JSON response" doc:id="07904aa8-f1af-4e7a-b2ee-ff48d32b0862" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"exists" : not isEmpty(payload),
+	"message" : if (not isEmpty(payload)) ("User with SSN $(vars.ssn) exists") else ("User with SSN $(vars.ssn) doesn't exist")
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	 <flow name="updateUserInfo" doc:id="522153e4-48a4-4e40-a43b-e7dc07f80191" >
+		<flow-ref doc:name="validateToken" doc:id="6def4093-07e8-4769-9aee-4c08366dcc51" name="validateToken"/>
+		<scatter-gather doc:name="Scatter-Gather" doc:id="4c3154b1-f10c-4fb2-875d-b6906229526c" >
+			<route >
+				<ee:transform doc:name="Create PUT User request" doc:id="29194f62-3d9b-48f8-aa7d-5657e43712fc">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	username: payload.username,
+	name: payload.name,
+	phone: payload.phone,
+	email: payload.email,
+	ssn: payload.ssn,
+	gender: payload.gender
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<http:request method="PUT" doc:name="PUT user info" doc:id="55c20769-99c4-44aa-8595-c267e8f4e227" config-ref="HTTP_Request_Identity_Service" path="users/{id}" >
+					<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	"id" : vars.user.sub
+}]]]></http:uri-params>
+					<http:query-params ><![CDATA[#[output application/java
+---
+{
+	"id" : "Value"
+}]]]></http:query-params>
+				</http:request>
+			</route>
+			<route >
+				<ee:transform doc:name="Create PUT Contact request and userEmail variable" doc:id="19138926-db1e-46c7-9d57-ee31f75f6bbd" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	first_name: (payload.name splitBy(" "))[0],
+	last_name: (payload.name splitBy(" "))[1],
+	address: payload.address,
+	email: payload.email
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="userEmail" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.email]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<banking-contact-system-api:update-contacts doc:name="Call Salesforce system API PUT Contact" doc:id="ff008dba-2e66-4e29-b3fe-956f7d1b30bc" config-ref="Banking_Contact_System_API_Config" email="#[vars.userEmail]"/>
+			</route>
+		</scatter-gather>
+	</flow>
+	<flow name="getUserInfo" doc:id="41b46eb5-8416-412d-bb25-f710466fd16d" >
+		<flow-ref doc:name="validateToken" doc:id="31639af2-da7b-4212-93b2-bdcbb47adf44" name="validateToken"/>
+		<http:request method="GET" doc:name="GET user info" doc:id="baa48205-6c1f-46e1-8b0b-0ae535c7edb6" config-ref="HTTP_Request_Identity_Service" path="users/{id}" target="userData">
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	"id" : vars.user.sub
+}]]]></http:uri-params>
+		</http:request>
+		<banking-contact-system-api:get-contacts doc:name="Call Salesforce system API GET Contact" doc:id="12c8c031-85fc-4714-ac46-1ae5563f1bb7" config-ref="Banking_Contact_System_API_Config" email="#[vars.userData.email]"/>
+		<ee:transform doc:name="Create JSON user info response" doc:id="a13af45d-fc71-482b-927c-e13b26823484" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	address: payload.address, 
+	email: vars.userData.email,
+	gender: vars.userData.gender,
+	id: vars.userData.id,
+	name: vars.userData.name,
+	phone: vars.userData.phone,
+	ssn: vars.userData.ssn,
+	username: vars.userData.username
+}
+
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="validateToken" doc:id="32ea2c4d-b6e0-423b-943e-eddabe51f3f0" >
+		<set-variable value="#[attributes.headers.authorization]" doc:name="Save Authorization header" doc:id="f6e8a964-72e8-4b13-96cd-6dff7714b4ae" variableName="authorization"/>
+		<validation:all doc:name="All" doc:id="5bce5ddd-79c7-4750-9d3f-2aa813eb26b2" >
+			<validation:is-not-null doc:name="Exists Authorization header" doc:id="d5b653fb-0187-4d95-8af9-db4a42da0fed" config-ref="Validation_Config" value="#[vars.authorization]" message="Authorization header is null" />
+			<validation:is-true doc:name="Starts with Bearer" doc:id="bc19adc3-a9ed-466b-bca3-e6ad60de2a12" config-ref="Validation_Config" message="Authorization header doesn't start with 'Bearer '" expression='#[vars.authorization startsWith("Bearer ")]' />
+		</validation:all>
+		<ee:transform doc:name="Set variables ui_token and aesKeyString" doc:id="788aeca3-2ebd-4a52-87b1-cdb58045fa91" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="ui_token" ><![CDATA[%dw 2.0
+output application/java
+---
+vars.authorization[7 to sizeOf(vars.authorization) -1]]]></ee:set-variable>
+				<ee:set-variable variableName="issuer" ><![CDATA[%dw 2.0
+output application/java
+---
+p("access_token.issuer")]]></ee:set-variable>
+			
+</ee:variables>
+		</ee:transform>
+		<file:read doc:name="Load AES key" doc:id="73b2eb57-4d1c-4917-958e-c756642ab022" path="${access_token.encryption_key.path}"
+            target="aesKeyString" config-ref="File_Config"/>
+		
+		<java:invoke-static doc:name="Get JWT Claims" doc:id="4b702a1b-05b7-40c2-9516-5c88420dc4f6" class="org.mule.templates.oauth2.TokenUtils" method="getJwtClaims(String,String,String)" target="user">
+			<java:args ><![CDATA[#[{arg0:vars.ui_token, arg1:vars.issuer, arg2:vars.aesKeyString as String}]]]></java:args>
+		</java:invoke-static>
+	
+</flow>
+	<flow name="signupFlow" doc:id="293d497f-8fa7-4357-bbb0-097390c4c4ec" >
+		<http:request method="GET" doc:name="Call Identity Service GET users by username and email" doc:id="c932fba0-b635-4784-8593-b22575f69296" config-ref="HTTP_Request_Identity_Service" path="/checkuser" target="checkStatus">
+			<http:query-params ><![CDATA[#[output application/java
+---
+{
+	"username" : payload.username,
+	"email" : payload.email
+}]]]></http:query-params>
+		</http:request>
+		<choice doc:name="Does user with the same username or email exist?" doc:id="56f7fc08-1bea-4456-b7aa-79870f996ea3" >
+			<when expression="#[vars.checkStatus]">
+				<logger level="INFO" doc:name="Log: Login and email are available" doc:id="9167f66c-8b0b-4239-af93-6efa974dea51" message="Login and email are available"/>
+				<ee:transform doc:name="Create POST User requests" doc:id="a063e839-6239-43ec-9fb7-feec1e8daef2">
+					<ee:message>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="userData" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	username: payload.username,
+	password: payload.password,
+	name: payload.name,
+	phone: payload.phone,
+	ssn: payload.ssn,
+	email: payload.email,
+	gender: payload.gender
+}]]></ee:set-variable>
+						<ee:set-variable variableName="contactSfdc" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"first_name": (payload.name splitBy(" "))[0],
+	"last_name": (payload.name splitBy(" "))[1],
+	"address": payload.address,
+	"phone": payload.phone,
+	"email": payload.email
+}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<scatter-gather doc:name="Scatter-Gather" doc:id="f380f465-7fb3-44d6-b46b-e63c104ec2e0" >
+					<route >
+						<http:request method="POST" doc:name="Call Identity Service POST User" doc:id="27d783f1-34c5-453f-8600-0f1de6c61f84" config-ref="HTTP_Request_Identity_Service" path="/users">
+							<http:body ><![CDATA[#[vars.userData]]]></http:body>
+						</http:request>
+					</route>
+					<route >
+						<http:request method="POST" doc:name="Call External Identity Service POST User" doc:id="b928fabe-0017-4e18-a3ae-a4ef3f4ab1c6" config-ref="HTTP_Request_Identity_Service_External" path="/users">
+							<http:body ><![CDATA[#[vars.userData]]]></http:body>
+						</http:request>
+					</route>
+				</scatter-gather>
+				<banking-contact-system-api:create-contact doc:name="Call Salesforce system API POST Contact" doc:id="d282b5ca-c21f-46dd-a9d2-321824912e13" config-ref="Banking_Contact_System_API_Config">
+					<banking-contact-system-api:create-contact-request-data ><![CDATA[#[vars.contactSfdc]]]></banking-contact-system-api:create-contact-request-data>
+				</banking-contact-system-api:create-contact>
+				<ee:transform doc:name="Create JSON response" doc:id="1f01e412-2a1e-423a-8602-d91735f6f8c3" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "message": "Registration completed successfully. You can log in with your credentials."
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Log: Username or email is already in use" doc:id="f59a321e-b008-424c-94e2-c432c9f78805" message="Username or email is already in use"/>
+				<ee:transform doc:name="Create JSON Response" doc:id="f7e89976-41b4-4bc9-a265-cc9a1918f50d" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "message": "Username you are trying to set is already in use. Please, choose another one."
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="httpStatus" ><![CDATA[%dw 2.0
+output application/java
+---
+409]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="loginFlow" doc:id="f05f291d-66ac-4334-846f-e80c49b3b18e" >
+		<choice doc:name="credentials present" doc:id="8205e88c-9c21-4019-bc80-b4af52bb4301" >
+			<when expression="#[payload != null and payload.username != null and payload.password != null]">
+				<ee:transform doc:name="Prepare for POST" doc:id="ec397d6d-3603-484e-9fe0-0206fa2c5c57" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+	username : payload.username,
+	password : payload.password
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<try doc:name="Try" doc:id="6eba4463-6d38-4192-9c6f-892243558fe6" >
+					<http:request method="POST" doc:name="Validate credentials and get info" doc:id="7ae52dde-a959-4e71-85c0-e1d8bb89a969" config-ref="HTTP_Request_Identity_Service" path="/authorize">
+					<http:headers><![CDATA[#[output application/java
+---
+{
+	"Content-Type" : "application/x-www-form-urlencoded"
+}]]]></http:headers>
+				</http:request>
+					<logger level="INFO" doc:name="Log: ext service outputs" doc:id="e249cd83-dc34-4a5c-93a4-8ced02421969" message="ext-service-output: #[output application/json --- payload]" />
+					<file:read doc:name="Set aesKeyString" doc:id="2e8a5ebe-c8bf-4040-b0e1-432fb5009e9e" config-ref="File_Config" path="${access_token.encryption_key.path}" target="aesKeyString" />
+					<java:invoke-static doc:name="Build JWT token" doc:id="c2d079c2-d6cc-4fc9-876b-a9e2b03da8da" class="org.mule.templates.oauth2.TokenUtils" method="getCompactSerialization(String, String, String, Integer, String)">
+							<java:args><![CDATA[#[{arg0: payload.id, arg1: payload.ssn, arg2: "${access_token.issuer}", arg3: "${access_token.validity.minutes}", arg4: vars.aesKeyString}]]]></java:args>
+						</java:invoke-static>
+					<ee:transform doc:name="Set response" doc:id="ef0e373b-4a5e-4417-a5b8-a69d58a6709f">
+							<ee:message>
+								<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"access_token" : payload
+}]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+					<error-handler >
+						<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="6521b281-ada5-424d-970c-d15ce393f358" type="HTTP:UNAUTHORIZED">
+							<ee:transform doc:name="Unauthorized" doc:id="0829c41b-6e2e-456a-9c23-1c5631bea688">
+							<ee:message>
+								<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": "Unauthorized",
+	"service" : "AnypointBankExperienceAPI"
+}]]></ee:set-payload>
+							</ee:message>
+							<ee:variables>
+								<ee:set-variable variableName="httpStatus"><![CDATA[%dw 2.0
+output application/java
+---
+401]]></ee:set-variable>
+							</ee:variables>
+						</ee:transform>
+						</on-error-continue>
+					</error-handler>
+				</try>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Unauthorized" doc:id="80d967fc-40d7-4c81-9ffb-afccfdc89140" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": "Unauthorized",
+	"service" : "AnypointBankExperienceAPI"
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="httpStatus" ><![CDATA[%dw 2.0
+output application/java
+---
+401]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="registerUser" doc:id="56b3fc4f-5660-465c-92a9-2e1a0cfd015a" >
+		<flow-ref doc:name="validateToken" doc:id="a40b6820-185f-4ae1-b416-ed4696157a06" name="validateToken"/>
+		<ee:transform doc:name="Transform properties to bankVar based on bankId" doc:id="e99f7c25-ed21-4545-8b88-8e5bc9e57af8" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="bankVar" ><![CDATA[%dw 2.0
+import * from dw::core::URL
+output application/java
+var bank = read(p('registered.banks'), "application/json")[vars.bankId]
+---
+{
+	name: bank.name,
+    clientId: bank.clientId,
+    clientSecret: bank.clientSecret,
+    asBaseURL: parseURI(bank.asBaseURL),
+    redirectUri: bank.redirectUri,
+    aispBaseURL: parseURI(bank.aispBaseURL)
+}]]></ee:set-variable>
+				<ee:set-variable variableName="scopeVar" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.scope]]></ee:set-variable>
+			
+</ee:variables>
+		</ee:transform>
+		<banking-authorization-server:generate-token doc:name="Obtain token from AS" doc:id="067bd000-d1e9-4cc3-9da2-0b413013b854" config-ref="Banking_Authorization_Server_Config" redirect-uri="#[vars.bankVar.redirectUri]">
+			<banking-authorization-server:generate-token-request-data><![CDATA[#[output application/x-www-form-urlencoded 
+--- 
+{
+	"code" : payload.code,
+	"client_id" : vars.bankVar.clientId,
+	"client_secret" : vars.bankVar.clientSecret,
+	"grant_type" : "authorization_code"
+}]]]></banking-authorization-server:generate-token-request-data>
+		</banking-authorization-server:generate-token>
+		<ee:transform doc:name="Set Variables usersubBankId and tokenVar" doc:id="14050dbb-df7f-4aaf-8905-77b1fc1378e0">
+			<ee:message>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="tokenVar"><![CDATA[%dw 2.0
+output application/java
+---
+payload.access_token]]></ee:set-variable>
+				<ee:set-variable variableName="usersubBankId"><![CDATA[%dw 2.0
+output application/java
+---
+[vars.user.sub, vars.bankId] joinBy("_")]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="Log token and scope variables" doc:id="746b1959-fb1f-47f8-945e-87e00c97886e" message="token stored: #[vars.tokenVar] and scope stored #[vars.scopeVar]" />
+		<os:contains doc:name="Key exists?" doc:id="b7cf6ea0-d807-4108-b40d-868678fa64da" key="#[vars.usersubBankId]" objectStore="UserToken_Config"/>
+		<choice doc:name="Contains token for bank?" doc:id="2227a5e1-cc83-4d7c-9741-3772dd2ce7dd" >
+			<when expression="#[payload]">
+				<os:retrieve doc:name="Retrieve user's token" doc:id="ec8f7f6d-d078-4b8f-8ec3-e9adbf6b2f65" key="#[vars.usersubBankId]" objectStore="UserToken_Config" target="existingToken"/>
+				<ee:transform doc:name="Handle existing token" doc:id="47d7f436-a809-4189-a583-81381e828f77">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	"token": vars.tokenVar,
+	("scope": if(vars.existingToken.scope contains(vars.scopeVar)) vars.existingToken.scope 
+	else
+		(vars.existingToken.scope ++ "," ++ vars.scopeVar))
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Handle new token" doc:id="edbdb1aa-bedc-4e95-9191-9f2fa49caba0" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	"token": vars.tokenVar,
+	"scope": vars.scopeVar
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+		<os:store doc:name="Store user's token object" doc:id="049c24aa-eebe-460f-a474-03811561a94c" key="#[vars.usersubBankId]" objectStore="UserToken_Config"/>
+	</flow>
+	<flow name="revokeUser" doc:id="ceca570c-8204-422b-be3d-f1fa895447f1" >
+		<flow-ref doc:name="validateToken" doc:id="db543509-1dad-451e-af37-e6b3b9bf4461" name="validateToken"/>
+		<ee:transform doc:name="Set Variable scopeVar and usersubBankId" doc:id="55e335ed-8867-4c76-a2d0-28576389445d" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="scopeVar" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.scope]]></ee:set-variable>
+				<ee:set-variable variableName="usersubBankId" ><![CDATA[%dw 2.0
+output application/java
+---
+[vars.user.sub, vars.bankId] joinBy("_")]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<os:contains doc:name="Key exists?" doc:id="eaaa1e7f-34da-499b-91b2-4b00111c3eb2" objectStore="UserToken_Config" key="#[vars.usersubBankId]"/>
+		<choice doc:name="Contains token for bank?" doc:id="620a756a-8219-4ee0-b322-a2dbdaee4491" >
+			<when expression="#[payload]">
+				<os:retrieve doc:name="Retrieve user's token" doc:id="7212d4ef-ef2f-4017-bf1c-19cac3fbd2e5" key="#[vars.usersubBankId]" objectStore="UserToken_Config" target="existingToken"/>
+				<ee:transform doc:name="Update token scope" doc:id="22a5b2ab-02d9-41de-9ddd-831ab3ed5248" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	token : vars.existingToken.token,
+	scope : trim(vars.existingToken.scope replace vars.scopeVar with "")
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Log removed scope from token" doc:id="c48d77e5-7afe-4262-a21a-89300d42dc41" message="Scope removed from token #[payload]"/>
+				<choice doc:name="Empty scope?" doc:id="4aaac3be-580e-46eb-8be1-dd00a085718a" >
+					<when expression='#[payload.scope == ""]'>
+						<os:remove doc:name="Remove user's token" doc:id="45cfc3ca-5614-4e37-a3db-7d4539c44b94" key="#[vars.usersubBankId]" objectStore="UserToken_Config"/>
+					</when>
+					<otherwise >
+						<os:store doc:name="Update user's scope" doc:id="62c70a21-abc2-4d08-b852-9cd672aeafc9" key="#[vars.usersubBankId]" objectStore="UserToken_Config"/>
+					</otherwise>
+				</choice>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Invalid token" doc:id="737ef4cf-4b75-4d15-93a7-0803c0411fbb" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{ 
+	"message": "Invalid token",
+	"service" : "AnypointBankExperienceAPI"
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="httpStatus" ><![CDATA[%dw 2.0
+output application/java
+---
+500]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="getTransactionsByAccount" doc:id="a0993dcd-0dbc-4caf-b15c-f1374d29ab08" >
+		<flow-ref doc:name="validateToken" doc:id="23c5aa0b-fc74-4761-91ae-c9661c5c8531" name="validateToken"/>
+		<choice doc:name="is AnypointBank account" doc:id="b610a1a9-e65d-4eaa-b531-2e64f332e785" >
+			<when expression='#[vars.bankId == p("anypoint.bank.id")]' >
+				<banking-accounts-process-api:aggregate-user-transactions doc:name="Get user's transactions" doc:id="59591c5f-6a05-49f3-b323-04cf591219ce" config-ref="Banking_Accounts_Process_API_Config" ssn="#[vars.user.ssn]"/>
+				<ee:transform doc:name="Build output" doc:id="ea47ce64-c2a8-4eaf-bf24-0501e9cfd0d5" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+(payload filter($.this_account.id == vars.accountId) map {
+	description     : $.details.label,
+	amount          : $.details.value.amount,
+	currency        : $.details.value.currency,
+	balance         : $.details.new_balance.amount,
+	transactionDate : $.details.completed,
+	isIncome        : not ($.details.value.amount startsWith('-'))
+} orderBy $.transactionDate)[-1 to 0] default [] ]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Read bankVar" doc:id="7c69caf1-76b7-41cd-9b18-90de306db256" >
+					<ee:message >
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="usersubBankId" ><![CDATA[%dw 2.0
+output application/java
+---
+[vars.user.sub as String, vars.bankId as String] joinBy('_')]]></ee:set-variable>
+						<ee:set-variable variableName="bank" ><![CDATA[%dw 2.0
+output application/java
+import * from dw::core::URL
+var bankVar = read(p("registered.banks"), "application/json")[vars.bankId]
+---
+{
+    name: bankVar.name,
+    clientId: bankVar.clientId,
+    clientSecret: bankVar.clientSecret,
+    asBaseURL: parseURI(bankVar.asBaseURL),
+    redirectUri: bankVar.redirectUri,
+    aispBaseURL: parseURI(bankVar.aispBaseURL)
+}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<os:contains doc:name="Contains" doc:id="1e652d53-89b4-498b-b536-094b1cd34257" key="#[vars.usersubBankId]" objectStore="UserToken_Config"/>
+				<choice doc:name="Does the token exist?" doc:id="0a9c7a1f-bdcb-4d62-bb71-2664e2c1bc70" >
+					<when expression="#[payload]" >
+						<os:retrieve doc:name="Get token" doc:id="1703637d-26f4-4d2d-af51-5d031962cbd7" objectStore="UserToken_Config" target="tokenVar" key="#[vars.usersubBankId]"/>
+
+ <banking-aisp-experience-api:get-accounts-transactions doc:name="Get accounts transactions" doc:id="cc41a8c1-e415-4fc1-9044-0e8b8c688516" config-ref="Banking_AISP_Experience_API_Config"/>
+						<ee:transform doc:name="Build output" doc:id="3a8e3b6d-0105-4a9b-af27-4499c4094ace" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+(payload filter ($.account_id == vars.accountId) map {
+	description     : $.description,
+	amount          : $.value.amount,
+	currency        : $.value.currency,
+	balance         : $.new_balance.amount,
+	transactionDate : $.completed,
+	isIncome        : not ($.value.amount startsWith('-'))
+} orderBy $.transactionDate)[-1 to 0] default []
+]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+					</when>
+					<otherwise>
+						<ee:transform doc:name="No Data" doc:id="04a08ca6-2e1b-440a-bf1a-ce10fcb8440d" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+[]]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+					</otherwise>
+				</choice>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="getUserAccounts" doc:id="775bff8b-b40a-4784-a4a0-0a73dd589ab6" >
+		<flow-ref doc:name="validateToken" doc:id="e2f2de58-7d7e-40e7-8d60-d079339e0cba" name="validateToken"/>
+		<banking-accounts-process-api:aggregate-user-accounts doc:name="Get accounts info" doc:id="eef20efa-b184-440e-b232-d8861020e5c2" config-ref="Banking_Accounts_Process_API_Config" ssn="#[vars.user.ssn]" target="info"/>
+		<banking-accounts-process-api:aggregate-user-transactions doc:name="Get accounts transactions" doc:id="dab3d9e8-a81c-41c0-8dd6-df2566e60ccc" config-ref="Banking_Accounts_Process_API_Config" ssn="#[vars.user.ssn]" target="transactions"/>
+		<ee:transform doc:name="Build account info" doc:id="a060008e-94df-47ac-89de-b2be04090af2" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="anypointBankAccountsInfo" ><![CDATA[%dw 2.0
+output application/java
+---
+using (
+	checkingAccInfo = vars.info filter ($."type" == "checking"),
+	savingsAccInfo = vars.info filter ($."type" == "savings")
+){
+	bankName: p('anypoint.bank.name'),
+	bankId: p('anypoint.bank.id'),
+	
+	(checking: 
+		using (
+			transactions = ((vars.transactions filter ($.this_account.id == checkingAccInfo[0].id)) 
+				orderBy $.details.completed)[-1 to 0]
+		){
+		accountId           : checkingAccInfo[0].id,
+		amount              : checkingAccInfo[0].balance.amount,
+		currency            : checkingAccInfo[0].balance.currency,
+		(lastTransactionDate : if(not (isEmpty(transactions))) transactions[0].details.completed else null)
+	}) if not (isEmpty(checkingAccInfo)),
+	
+	(savings:
+		using (
+			transactions = ((vars.transactions filter ($.this_account.id == savingsAccInfo[0].id)) orderBy $.details.completed)[-1 to 0]
+		){
+		accountId           : savingsAccInfo[0].id,
+		amount              : savingsAccInfo[0].balance.amount,
+		currency            : savingsAccInfo[0].balance.currency,
+		(lastTransactionDate : if (not (isEmpty(transactions))) transactions[0].details.completed else null)
+	}) if not (isEmpty(savingsAccInfo))
+}]]></ee:set-variable>
+				<ee:set-variable variableName="registeredBanks" ><![CDATA[%dw 2.0
+output application/java
+import * from dw::core::URL
+var banks = read(p("registered.banks"), "application/json")
+var bankIds = banks pluck $$
+---
+banks pluck $ map (item, index)-> {
+    bankId: bankIds[index] as String,
+    name: item.name,
+    clientId: item.clientId,
+    clientSecret: item.clientSecret,
+    asBaseURL: parseURI(item.asBaseURL),
+    redirectUri: item.redirectUri,
+    aispBaseURL: parseURI(item.aispBaseURL)
+}]]></ee:set-variable>
+				<ee:set-variable variableName="registeredBanksAccountsInfo" ><![CDATA[%dw 2.0
+output application/java
+---
+[]]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<foreach doc:name="For Each Bank" doc:id="f585a229-cd63-4430-a93d-6b90f2f2354e" counterVariableName="bankCounter" collection='#[vars.registeredBanks]'>
+			<flow-ref doc:name="getRegisteredBanksAccountsInfo" doc:id="8ba63baf-c65b-43be-9694-831c1eb796f2" name="getRegisteredBanksAccountsInfo"/>
+			<ee:transform doc:name="Add to registeredBanksAccountsInfo variable" doc:id="f8ead409-0db0-4bf3-a548-63403c7f5abd" >
+				<ee:message >
+				</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="registeredBanksAccountsInfo" ><![CDATA[%dw 2.0
+output application/java
+---
+if(payload != null ) vars.registeredBanksAccountsInfo + payload 
+else vars.registeredBanksAccountsInfo]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+		</foreach>
+		<ee:transform doc:name="Prepare response" doc:id="8a6a0ec5-4411-4c35-abd0-3810adb06c49" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	anypointBank: vars.anypointBankAccountsInfo,
+	registeredBanks: vars.registeredBanksAccountsInfo
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Log success" doc:id="0024b8fe-be6d-41d7-a0ed-f614fd1ee965" message="Processing has finished"/>
+	</flow>
+	<flow name="getRegisteredBanksAccountsInfo" doc:id="972718fa-f0ca-4b11-bb81-1c01cf2c78bb" >
+		<ee:transform doc:name="Load bank info" doc:id="ca66e860-5261-4522-b5ac-3f473b12aeb6" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="usersubBankId" ><![CDATA[%dw 2.0
+output application/java
+---
+[vars.user.sub as String, payload.bankId as String] joinBy('_')]]></ee:set-variable>
+				<ee:set-variable variableName="bank" ><![CDATA[%dw 2.0
+output application/java
+---
+payload]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<os:contains doc:name="Check if user is registered with bank" doc:id="6b2f0b02-8b95-447c-83f9-8968685b7fad" key="#[vars.usersubBankId]" objectStore="UserToken_Config"/>
+		<choice doc:name="Contains token for bank?" doc:id="7f50d5f3-08f5-44f5-b387-26649669158d" >
+			<when expression="#[payload]">
+				<logger level="INFO" doc:name="Log process" doc:id="1147212c-1058-4fca-9b92-a154b8634e69" message="Getting accounts from bank #[vars.bank.bankId]"/>
+				<os:retrieve doc:name="Get tokenVar" doc:id="fffefecb-ca76-441f-a317-d23a896f8739" key="#[vars.usersubBankId]" objectStore="UserToken_Config" target="tokenVar"/>
+				<banking-aisp-experience-api:get-accounts-information doc:name="Get accounts information" doc:id="a06790c8-c4bb-4861-8910-8eaf85f6bd9f" config-ref="Banking_AISP_Experience_API_Config" target="info" />
+				<banking-aisp-experience-api:get-accounts-balance doc:name="Get accounts balance" doc:id="4e270a0a-8066-4aca-9844-71fb9ceb86fb" config-ref="Banking_AISP_Experience_API_Config" target="balance"/>
+				<banking-aisp-experience-api:get-accounts-transactions doc:name="Get accounts transactions" doc:id="ccbf516d-b304-48a3-afc0-b6df782a9f77" config-ref="Banking_AISP_Experience_API_Config" target="transactions"/>
+				<ee:transform doc:name="Build account Info" doc:id="07b7e8da-babc-409b-bdcb-6fa78d06f03d">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+using (
+	checkingAccInfo = vars.info filter ($."type" == "checking"),
+	savingsAccInfo = vars.info filter ($."type" == "savings")
+){
+	bankName: vars.bank.name,
+	bankId: vars.bank.bankId,
+	(checking: 
+		using (
+			id = checkingAccInfo[0].id,
+			balance = vars.balance filter ($.id == checkingAccInfo[0].id),
+			transactions = ((vars.transactions filter ($.account_id == checkingAccInfo[0].id)) orderBy $.completed)[-1 to 0]
+		){
+		accountId           : id,
+		amount              : balance[0].balance.amount,
+		currency            : balance[0].balance.currency,
+		(lastTransactionDate : if (not (isEmpty(transactions))) transactions[0].completed else null)
+	}) 	if ((not (isEmpty(checkingAccInfo))) and (vars.tokenVar.scope contains ('checking'))),
+	
+	
+	(savings:
+		using (
+			id = savingsAccInfo[0].id,
+			balance = vars.balance filter ($.id == savingsAccInfo[0].id),
+			transactions = ((vars.transactions filter ($.account_id == savingsAccInfo[0].id)) orderBy $.completed)[-1 to 0]
+		){
+		accountId           : id,
+		amount              : balance[0].balance.amount,
+		currency            : balance[0].balance.currency,
+		(lastTransactionDate : if (not (isEmpty(transactions))) transactions[0].completed else null)
+	}) if ((not (isEmpty(savingsAccInfo))) and (vars.tokenVar.scope contains ('savings')))
+	
+
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Log not linked" doc:id="7717d3f0-889a-4c67-a92e-708df25294bb" message="Bank #[vars.bank.bankId] not linked with user"/>
+				<set-payload value="#[null]" doc:name="Set response" doc:id="41c2c945-cac2-4a26-9bff-468ad15dab4c" />
+			</otherwise>
+		</choice>
+	</flow>
+</mule>
