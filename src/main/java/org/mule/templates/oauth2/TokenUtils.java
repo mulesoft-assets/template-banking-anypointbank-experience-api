@@ -16,8 +16,23 @@ import org.jose4j.jwe.ContentEncryptionAlgorithmIdentifiers;
 import org.jose4j.jwk.JsonWebKey;
 import org.jose4j.jwk.OctetSequenceJsonWebKey;
 
+/**
+ * Utility class for token operations
+ */
+
 public class TokenUtils {
 
+	
+	/**
+	 *	Built JWT token
+	 * 
+	 * @param id
+	 * @param ssn
+	 * @param issuer
+	 * @param minutes
+	 * @param aesKeyString
+	 * @return access token
+	 */
 	public static String getCompactSerialization(String id, String ssn, String issuer, Integer minutes,
 			String aesKeyString) {
 
@@ -44,6 +59,14 @@ public class TokenUtils {
 		}
 	}
 
+	/**
+	 * Retrieve JWT claims from uiToken
+	 * 
+	 * @param uiToken
+	 * @param issuer
+	 * @param aesKeyString
+	 * @return JWT claims
+	 */
 	public static Map<String, Object> getJwtClaims(String uiToken, String issuer, String aesKeyString)
 			throws InvalidJwtException, JoseException {
 

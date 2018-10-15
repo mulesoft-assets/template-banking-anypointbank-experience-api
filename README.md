@@ -51,12 +51,12 @@ Anypoint Studio offers several ways to import a project into the workspace, for 
 + Anypoint Studio Project from File System
 + Packaged mule application (.jar)ion
 
-You can find a detailed description on how to do so in this [Documentation Page](http://www.mulesoft.org/documentation/display/current/Importing+and+Exporting+in+Studio).
+You can find a detailed description on how to do so in this [Documentation Page](https://docs.mulesoft.com/studio/7.2/import-export-packages).
 
 ### Running on Studio <a name="runonstudio"/>
 Once you have imported you Anypoint Template into Anypoint Studio you need to follow these steps to run it:
 
-+ Generate keystore and truststore (You can find a detailed description on how to do so in this [Documentation Page](https://docs.mulesoft.com/mule-user-guide/v/3.7/tls-configuration#generating-keystores-and-truststores))
++ Generate keystore and truststore (You can find a detailed description on how to do so in this [Documentation Page](https://docs.mulesoft.com/mule-runtime/4.1/tls-configuration#generating-keystores-and-truststores))
 + Locate the properties file `mule-<env>.properties`, in src/main/resources
 + Complete all the properties required as per the examples in the section [Properties to be configured](#propertiestobeconfigured)
 + Once that is done, right click on you Anypoint Template project folder 
