@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:banking-aisp-experience-api="http://www.mulesoft.org/schema/mule/banking-aisp-experience-api"
+	xmlns:banking-authorization-server="http://www.mulesoft.org/schema/mule/banking-authorization-server" xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:banking-contact-system-api="http://www.mulesoft.org/schema/mule/banking-contact-system-api"
+	xmlns:banking-accounts-process-api="http://www.mulesoft.org/schema/mule/banking-accounts-process-api" xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd 
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd 
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/banking-accounts-process-api http://www.mulesoft.org/schema/mule/banking-accounts-process-api/current/mule-banking-accounts-process-api.xsd
+http://www.mulesoft.org/schema/mule/banking-contact-system-api http://www.mulesoft.org/schema/mule/banking-contact-system-api/current/mule-banking-contact-system-api.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/banking-authorization-server http://www.mulesoft.org/schema/mule/banking-authorization-server/current/mule-banking-authorization-server.xsd
+http://www.mulesoft.org/schema/mule/banking-aisp-experience-api http://www.mulesoft.org/schema/mule/banking-aisp-experience-api/current/mule-banking-aisp-experience-api.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd">
+	
+	<http:listener-config name="Banking_Portal_Experience_API-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0"
+			port="${https.port}" protocol="HTTPS">
+			<tls:context>
+				<tls:key-store type="jks" path="${keystore.location}"
+					alias="${key.alias}" keyPassword="${key.password}" password="${keystore.password}" />
+			</tls:context>
+		</http:listener-connection>
+    </http:listener-config>
+    <apikit:config name="Banking_Portal_Experience_API-config" raml="Banking_Portal_Experience_API.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <validation:config name="Validation_Config" doc:name="Validation Config" doc:id="8a44059f-6d82-4574-9ef7-9ebaeee96be3" />
+    <banking-accounts-process-api:config name="Banking_Accounts_Process_API_Config" doc:name="Banking_Accounts_Process_API Config" doc:id="effe737f-9508-4d6c-b52e-6e132f88564e" property_host="${api.banking.accounts.host}" property_port="${api.banking.accounts.port}" property_basePath="${api.banking.accounts.basePath}" property_protocol="${api.banking.accounts.protocol}"/>
+	<http:request-config name="HTTP_Request_Identity_Service" doc:name="HTTP Request configuration" doc:id="4b0bd9d1-ad5d-4f9f-a1a5-d62cd6adfd13" basePath="${identity.service.basePath}" >
+		<http:request-connection protocol="HTTPS" host="${identity.service.host}" port="${identity.service.port}" />
+	</http:request-config>
+	<banking-contact-system-api:config name="Banking_Contact_System_API_Config" doc:name="Banking_Contact_System_API Config" doc:id="06304416-d8ab-4e9e-9c9c-03e8035449db" property_host="${salesforce.system.api.host}" property_port="${salesforce.system.api.port}" property_basePath="${salesforce.system.api.basePath}" property_protocol="${salesforce.system.api.protocol}"/>
+	<http:request-config name="HTTP_Request_Identity_Service_External" doc:name="HTTP Request configuration" doc:id="ca72e7b0-a0b7-48a5-a285-ec413c08833d" basePath="${identity.service.external.basePath}" >
+		<http:request-connection protocol="HTTPS" host="${identity.service.external.host}" port="${identity.service.external.port}" />
+	</http:request-config>
+	<os:object-store name="UserToken_Config" doc:name="Object store" doc:id="108a642f-43c3-4a7d-b6ca-9d8939b60487" config-ref="ObjectStore_Config" persistent="false"/>
+	<banking-aisp-experience-api:config name="Banking_AISP_Experience_API_Config" doc:name="Banking_AISP_Experience_API Config" doc:id="4dda7576-151d-4046-acce-7e9370dac76f" property_host="#[vars.bank.aispBaseURL.host]" property_port="#[vars.bank.aispBaseURL.port]" property_basePath="#[vars.bank.aispBaseURL.path]" property_protocol="HTTPS"/>
+	<configuration-properties doc:name="Configuration properties" doc:id="979162f7-adbe-4e82-8392-89c19ef5f898" file="common.properties" />
+	<configuration-properties doc:name="Configuration properties" doc:id="e2a6e33d-2e15-4b3d-bf54-90e5b49bd1c0" file="mule.${mule.env}.properties" />
+	<global-property doc:name="Global Property" doc:id="175fbf98-541a-4549-8193-d22a075669c1" name="mule.env" value="dev" />
+	<os:config name="ObjectStore_Config" doc:name="ObjectStore Config" doc:id="9c48f47c-802d-4da3-86fd-ba364a1eba97" />
+	<file:config name="File_Config" doc:name="File Config" doc:id="361d1537-3696-4e22-8b9e-17ee85a08c89" >
+		<file:connection workingDir="${jwt.resource.path}" />
+	</file:config>
+	<banking-authorization-server:config name="Banking_Authorization_Server_Config"
+        doc:name="Banking Authorization Server Config" doc:id="73239395-1baa-477d-b8bc-0565dc6528b1" property_host="#[vars.bankVar.asBaseURL.host]"
+        property_port="#[vars.bankVar.asBaseURL.port]" property_basePath="#[vars.bankVar.asBaseURL.path]" property_protocol="HTTPS"/>
+	<api-gateway:autodiscovery apiId="${api.id}" doc:name="API Autodiscovery" doc:id="beb6530c-2ed4-4d2a-8f7b-3a1b90d8334e" flowRef="Banking_Portal_Experience_API-main" />
+	
+		
+</mule>
