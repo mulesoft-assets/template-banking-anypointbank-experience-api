@@ -18,7 +18,7 @@
 		<maven.compiler.plugin.version>3.8.0</maven.compiler.plugin.version>
 		<jose4j.version>0.6.4</jose4j.version>
 		<java.module.version>1.1.1</java.module.version>
-		<banking.aisp.experience.api.version>2.0.3</banking.aisp.experience.api.version>
+		<banking.aisp.experience.api.version>2.0.5</banking.aisp.experience.api.version>
 		<banking.accounts.process.api.version>2.0.8</banking.accounts.process.api.version>
 		<banking.contact.system.api.version>2.0.3</banking.contact.system.api.version>
 		<banking.authorization.server.api.version>3.0.6</banking.authorization.server.api.version>
