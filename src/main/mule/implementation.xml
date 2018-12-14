@@ -91,7 +91,7 @@ output application/java
 payload.email]]></ee:set-variable>
 					</ee:variables>
 				</ee:transform>
-				<banking-contact-system-api:update-contacts doc:name="Call Salesforce system API PUT Contact" doc:id="ff008dba-2e66-4e29-b3fe-956f7d1b30bc" config-ref="Banking_Contact_System_API_Config" email="#[vars.userEmail]"/>
+				<banking-contact-system-api:update-customer-contact doc:name="Call Salesforce system API PUT Contact" doc:id="ff008dba-2e66-4e29-b3fe-956f7d1b30bc" config-ref="Banking_Contact_System_API_Config" email="#[vars.userEmail]"/>
 			</route>
 		</scatter-gather>
 	</flow>
@@ -104,7 +104,7 @@ payload.email]]></ee:set-variable>
 	"id" : vars.user.sub
 }]]]></http:uri-params>
 		</http:request>
-		<banking-contact-system-api:get-contacts doc:name="Call Salesforce system API GET Contact" doc:id="12c8c031-85fc-4714-ac46-1ae5563f1bb7" config-ref="Banking_Contact_System_API_Config" email="#[vars.userData.email]"/>
+		<banking-contact-system-api:retrieve-customer-contact doc:name="Call Salesforce system API GET Contact" doc:id="12c8c031-85fc-4714-ac46-1ae5563f1bb7" config-ref="Banking_Contact_System_API_Config" email="#[vars.userData.email]"/>
 		<ee:transform doc:name="Create JSON user info response" doc:id="a13af45d-fc71-482b-927c-e13b26823484" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0
@@ -206,9 +206,10 @@ output application/json
 						</http:request>
 					</route>
 				</scatter-gather>
-				<banking-contact-system-api:create-contact doc:name="Call Salesforce system API POST Contact" doc:id="d282b5ca-c21f-46dd-a9d2-321824912e13" config-ref="Banking_Contact_System_API_Config">
-					<banking-contact-system-api:create-contact-request-data ><![CDATA[#[vars.contactSfdc]]]></banking-contact-system-api:create-contact-request-data>
-				</banking-contact-system-api:create-contact>
+				<banking-contact-system-api:create-customer-contact doc:name="Call Salesforce system API POST Contact" doc:id="d282b5ca-c21f-46dd-a9d2-321824912e13" config-ref="Banking_Contact_System_API_Config">
+					<banking-contact-system-api:create-customer-contact-request-data ><![CDATA[#[vars.contactSfdc]]]></banking-contact-system-api:create-customer-contact-request-data>
+				</banking-contact-system-api:create-customer-contact>
+				<banking-contact-system-api:create-customer-contact doc:name="Create customer contact" doc:id="eaf005b0-609b-4777-a311-027e66dc6b5d" />
 				<ee:transform doc:name="Create JSON response" doc:id="1f01e412-2a1e-423a-8602-d91735f6f8c3" >
 					<ee:message >
 						<ee:set-payload ><![CDATA[%dw 2.0
@@ -519,7 +520,7 @@ var bankVar = read(p("registered.banks"), "application/json")[vars.bankId]
 					<when expression="#[payload]" >
 						<os:retrieve doc:name="Get token" doc:id="1703637d-26f4-4d2d-af51-5d031962cbd7" objectStore="UserToken_Config" target="tokenVar" key="#[vars.usersubBankId]"/>
 
- <banking-aisp-experience-api:get-accounts-transactions doc:name="Get accounts transactions" doc:id="cc41a8c1-e415-4fc1-9044-0e8b8c688516" config-ref="Banking_AISP_Experience_API_Config" authorization='#["Bearer " ++ vars.tokenVar.token]'/>
+ <banking-aisp-experience-api:retrieve-accounts-transactions doc:name="Get accounts transactions" doc:id="cc41a8c1-e415-4fc1-9044-0e8b8c688516" config-ref="Banking_AISP_Experience_API_Config" authorization='#["Bearer " ++ vars.tokenVar.token]'/>
 						<ee:transform doc:name="Build output" doc:id="3a8e3b6d-0105-4a9b-af27-4499c4094ace" >
 							<ee:message >
 								<ee:set-payload ><![CDATA[%dw 2.0
@@ -658,9 +659,9 @@ payload]]></ee:set-variable>
 			<when expression="#[payload]">
 				<logger level="INFO" doc:name="Log process" doc:id="1147212c-1058-4fca-9b92-a154b8634e69" message="Getting accounts from bank #[vars.bank.bankId]"/>
 				<os:retrieve doc:name="Get tokenVar" doc:id="fffefecb-ca76-441f-a317-d23a896f8739" key="#[vars.usersubBankId]" objectStore="UserToken_Config" target="tokenVar"/>
-				<banking-aisp-experience-api:get-accounts-information doc:name="Get accounts information" doc:id="a06790c8-c4bb-4861-8910-8eaf85f6bd9f" config-ref="Banking_AISP_Experience_API_Config" target="info" authorization='#["Bearer " ++ vars.tokenVar.token]'/>
-				<banking-aisp-experience-api:get-accounts-balance doc:name="Get accounts balance" doc:id="4e270a0a-8066-4aca-9844-71fb9ceb86fb" config-ref="Banking_AISP_Experience_API_Config" target="balance" authorization='#["Bearer " ++ vars.tokenVar.token]'/>
-				<banking-aisp-experience-api:get-accounts-transactions doc:name="Get accounts transactions" doc:id="ccbf516d-b304-48a3-afc0-b6df782a9f77" config-ref="Banking_AISP_Experience_API_Config" target="transactions" authorization='#["Bearer " ++ vars.tokenVar.token]'/>
+				<banking-aisp-experience-api:retrieve-accounts-information doc:name="Get accounts information" doc:id="a06790c8-c4bb-4861-8910-8eaf85f6bd9f" config-ref="Banking_AISP_Experience_API_Config" target="info" authorization='#["Bearer " ++ vars.tokenVar.token]'/>
+				<banking-aisp-experience-api:retrieve-accounts-balance doc:name="Get accounts balance" doc:id="4e270a0a-8066-4aca-9844-71fb9ceb86fb" config-ref="Banking_AISP_Experience_API_Config" target="balance" authorization='#["Bearer " ++ vars.tokenVar.token]'/>
+				<banking-aisp-experience-api:retrieve-accounts-transactions doc:name="Get accounts transactions" doc:id="ccbf516d-b304-48a3-afc0-b6df782a9f77" config-ref="Banking_AISP_Experience_API_Config" target="transactions" authorization='#["Bearer " ++ vars.tokenVar.token]'/>
 				<ee:transform doc:name="Build account Info" doc:id="07b7e8da-babc-409b-bdcb-6fa78d06f03d">
 					<ee:message>
 						<ee:set-payload><![CDATA[%dw 2.0

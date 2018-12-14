@@ -4,8 +4,8 @@ version: v2.0
 baseUri: http://localhost:8081/api/
 
 uses: 
-  common: /exchange_modules/4d302cca-3f9a-4257-8ce4-20cf81a72e47/banking_common/1.0.1/banking_common.raml
-  portal: ./dataTypes.raml
+  common: exchange_modules/org.mule.templates/banking-common/1.0.1/banking_common.raml  
+  portal: dataTypes.raml
 
 traits:
   secured:
@@ -18,7 +18,7 @@ traits:
 /login:
   post:
     description: Logs in the user by providing JWT access token
-    displayName: User Login
+    displayName: Log in user 
     body:
       application/x-www-form-urlencoded:
         properties:
@@ -42,8 +42,9 @@ traits:
             example: !include examples/session/signin-error-response.raml
 
 /checkssn :
-    displayName: Check User's ssn existence
     get:
+      displayName: Check user ssn existence
+      description: Check User's ssn existence
       queryParameters:
         ssn:
           type: common.SSN
@@ -59,7 +60,7 @@ traits:
   /info:
     is: [secured]
     get:
-      displayName: Get User info
+      displayName: Retrieve user info
       description: GET User info
       responses:
         200:
@@ -68,7 +69,7 @@ traits:
               type: portal.UserInfo
               example: !include examples/user-portal-response.raml
     put:
-      displayName: Update User info
+      displayName: Update user info
       description: PUT user info from Portal
       body:
         application/json:
@@ -82,7 +83,7 @@ traits:
   /accounts:
     is: [secured]
     get:
-      displayName: Get user's accounts info
+      displayName: Retrieve user accounts info
       description: GET user's accounts info from AISP interfaces of banks
       responses:
         200:
@@ -101,7 +102,7 @@ traits:
         type: string | integer
         description: Bank ID
     get:
-      displayName: Get transaction history
+      displayName: Retrieve transaction history
       description: Get transaction history of account of user from AISP interfaces of banks
       responses:
         200:
@@ -117,7 +118,7 @@ traits:
         type: string | integer
         description: Bank ID
     post:
-      displayName: Register User
+      displayName: Register user
       description: Finish security dance with Auth Server using user's code and clientId and secret of registered app
       body:
         application/json:
@@ -138,7 +139,7 @@ traits:
         type: string | integer
         description: Bank ID
     post:
-      displayName: Revoke User
+      displayName: Revoke user
       description: Finish security dance with Auth Server using user's code and clientId and secret of registered app
       body:
         application/json:
@@ -155,7 +156,7 @@ traits:
 
 /signup:
   post:
-    displayName: User Signup
+    displayName: Sign up user 
     description: Signs up user
     body:
       application/json:

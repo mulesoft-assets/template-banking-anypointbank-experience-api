@@ -19,6 +19,7 @@ http://www.mulesoft.org/schema/mule/banking-aisp-experience-api http://www.mules
 http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
 http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd">
 	
+	<global-property doc:name="Global Property" doc:id="fc9d0581-d1b5-4ef8-a395-2534b32cbdc7" name="mule.env" value="dev" />	
 	<http:listener-config name="Banking_Portal_Experience_API-httpListenerConfig">
         <http:listener-connection host="0.0.0.0"
 			port="${https.port}" protocol="HTTPS">
@@ -39,10 +40,9 @@ http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/m
 		<http:request-connection protocol="HTTPS" host="${identity.service.external.host}" port="${identity.service.external.port}" />
 	</http:request-config>
 	<os:object-store name="UserToken_Config" doc:name="Object store" doc:id="108a642f-43c3-4a7d-b6ca-9d8939b60487" config-ref="ObjectStore_Config" persistent="false"/>
-	<banking-aisp-experience-api:config name="Banking_AISP_Experience_API_Config" doc:name="Banking_AISP_Experience_API Config" doc:id="4dda7576-151d-4046-acce-7e9370dac76f" property_host="#[vars.bank.aispBaseURL.host]" property_port="#[vars.bank.aispBaseURL.port]" property_basePath="#[vars.bank.aispBaseURL.path]" property_protocol="HTTPS"/>
+	<banking-aisp-experience-api:config name="Banking_AISP_Experience_API_Config" doc:name="Banking_AISP_Experience_API Config" doc:id="4dda7576-151d-4046-acce-7e9370dac76f" property_host="#[vars.bank.aispBaseURL.host]" property_port="#[vars.bank.aispBaseURL.port]" property_basePath="#[vars.bank.aispBaseURL.path]" property_protocol="HTTPS" property_client-id="#[vars.bank.clientId]" property_client-secret="#[ vars.bank.clientSecret]"/>
 	<configuration-properties doc:name="Configuration properties" doc:id="979162f7-adbe-4e82-8392-89c19ef5f898" file="common.properties" />
 	<configuration-properties doc:name="Configuration properties" doc:id="e2a6e33d-2e15-4b3d-bf54-90e5b49bd1c0" file="mule.${mule.env}.properties" />
-	<global-property doc:name="Global Property" doc:id="175fbf98-541a-4549-8193-d22a075669c1" name="mule.env" value="dev" />
 	<os:config name="ObjectStore_Config" doc:name="ObjectStore Config" doc:id="9c48f47c-802d-4da3-86fd-ba364a1eba97" />
 	<file:config name="File_Config" doc:name="File Config" doc:id="361d1537-3696-4e22-8b9e-17ee85a08c89" >
 		<file:connection workingDir="${jwt.resource.path}" />
