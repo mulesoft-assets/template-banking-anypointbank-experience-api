@@ -1,124 +1,116 @@
 <?xml version='1.0' encoding='utf-8'?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-
-	<parent>
-		<groupId>org.mule.templates</groupId>
-		<artifactId>templates-tooling-parent-pom</artifactId>
-		<version>2.1.13</version>
-	</parent>
-
-	<modelVersion>4.0.0</modelVersion>
-	<artifactId>template-banking-anypointbank-experience-api</artifactId>
-	<version>2.1.0-SNAPSHOT</version>
-	<packaging>mule-application</packaging>
-	<name>template-banking-anypointbank-experience-api</name>
-
-	<properties>
-		<maven.compiler.plugin.version>3.8.0</maven.compiler.plugin.version>
-		<jose4j.version>0.6.4</jose4j.version>
-		<java.module.version>1.1.1</java.module.version>
-	</properties>
-
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.mule.tools.maven</groupId>
-				<artifactId>mule-maven-plugin</artifactId>
-				<version>${mule.maven.plugin.version}</version>
-				<extensions>true</extensions>
-				<configuration>
-					<classifier>mule-application-template</classifier>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>${maven.compiler.plugin.version}</version>
-				<configuration>
-					<source>1.8</source>
-					<target>1.8</target>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
-
-	<dependencies>
-		<dependency>
-			<groupId>org.mule.modules</groupId>
-			<artifactId>mule-apikit-module</artifactId>
-			<classifier>mule-plugin</classifier>
-		</dependency>
-		<dependency>
-			<groupId>org.mule.modules</groupId>
-			<artifactId>mule-validation-module</artifactId>
-			<classifier>mule-plugin</classifier>
-		</dependency>
-		<dependency>
-			<groupId>org.mule.connectors</groupId>
-			<artifactId>mule-objectstore-connector</artifactId>
-			<classifier>mule-plugin</classifier>
-		</dependency>
-		<dependency>
-			<groupId>org.mule.module</groupId>
-			<artifactId>mule-java-module</artifactId>
-			<version>${java.module.version}</version>
-			<classifier>mule-plugin</classifier>
-		</dependency>
-		<dependency>
-			<groupId>org.bitbucket.b_c</groupId>
-			<artifactId>jose4j</artifactId>
-			<version>${jose4j.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.mule.connectors</groupId>
-			<artifactId>mule-file-connector</artifactId>
-			<classifier>mule-plugin</classifier>
-		</dependency>
-		<dependency>
-			<groupId>org.mule.connectors</groupId>
-			<artifactId>mule-http-connector</artifactId>
-			<classifier>mule-plugin</classifier>
-		</dependency>
-		<dependency>
+    <parent>
+        <groupId>org.mule.templates</groupId>
+        <artifactId>templates-tooling-parent-pom</artifactId>
+        <version>2.1.13</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>template-banking-anypointbank-experience-api</artifactId>
+    <version>2.1.0-SNAPSHOT</version>
+    <packaging>mule-application</packaging>
+    <name>template-banking-anypointbank-experience-api</name>
+    <properties>
+        <maven.compiler.plugin.version>3.8.0</maven.compiler.plugin.version>
+        <jose4j.version>0.6.4</jose4j.version>
+        <java.module.version>1.1.1</java.module.version>
+    </properties>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.mule.tools.maven</groupId>
+                <artifactId>mule-maven-plugin</artifactId>
+                <version>${mule.maven.plugin.version}</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <classifier>mule-application-template</classifier>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven.compiler.plugin.version}</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    <dependencies>
+        <dependency>
+            <groupId>org.mule.modules</groupId>
+            <artifactId>mule-apikit-module</artifactId>
+            <classifier>mule-plugin</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.mule.modules</groupId>
+            <artifactId>mule-validation-module</artifactId>
+            <classifier>mule-plugin</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.mule.connectors</groupId>
+            <artifactId>mule-objectstore-connector</artifactId>
+            <classifier>mule-plugin</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.mule.module</groupId>
+            <artifactId>mule-java-module</artifactId>
+            <version>${java.module.version}</version>
+            <classifier>mule-plugin</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.bitbucket.b_c</groupId>
+            <artifactId>jose4j</artifactId>
+            <version>${jose4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mule.connectors</groupId>
+            <artifactId>mule-file-connector</artifactId>
+            <classifier>mule-plugin</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.mule.connectors</groupId>
+            <artifactId>mule-http-connector</artifactId>
+            <classifier>mule-plugin</classifier>
+        </dependency>
+        <dependency>
             <groupId>68ef9520-24e9-4cf2-b2f5-620025690913</groupId>
             <artifactId>mule-plugin-account-aggregation-process-api</artifactId>
             <version>2.0.0</version>
             <classifier>mule-plugin</classifier>
         </dependency>
-    	<dependency>
+        <dependency>
             <groupId>68ef9520-24e9-4cf2-b2f5-620025690913</groupId>
             <artifactId>mule-plugin-authorization-server</artifactId>
             <version>2.0.0</version>
             <classifier>mule-plugin</classifier>
         </dependency>
-    	<dependency>
+        <dependency>
             <groupId>68ef9520-24e9-4cf2-b2f5-620025690913</groupId>
             <artifactId>mule-plugin-account-information-api</artifactId>
             <version>2.0.0</version>
             <classifier>mule-plugin</classifier>
         </dependency>
-    	<dependency>
+        <dependency>
             <groupId>68ef9520-24e9-4cf2-b2f5-620025690913</groupId>
             <artifactId>mule-plugin-customer-system-api</artifactId>
             <version>2.0.1</version>
             <classifier>mule-plugin</classifier>
         </dependency>
     </dependencies>
-
-	<repositories>
-		<repository>
-			<id>anypoint-exchange</id>
-			<name>Anypoint Exchange</name>
-			<url>https://maven.anypoint.mulesoft.com/api/v1/maven</url>
-			<layout>default</layout>
-		</repository>
-		<repository>
-			<id>mulesoft-releases</id>
-			<name>MuleSoft Releases Repository</name>
-			<url>https://repository.mulesoft.org/releases/</url>
-			<layout>default</layout>
-		</repository>
-	</repositories>
-
+    <repositories>
+        <repository>
+            <id>anypoint-exchange</id>
+            <name>Anypoint Exchange</name>
+            <url>https://maven.anypoint.mulesoft.com/api/v1/maven</url>
+            <layout>default</layout>
+        </repository>
+        <repository>
+            <id>mulesoft-releases</id>
+            <name>MuleSoft Releases Repository</name>
+            <url>https://repository.mulesoft.org/releases/</url>
+            <layout>default</layout>
+        </repository>
+    </repositories>
 </project>
