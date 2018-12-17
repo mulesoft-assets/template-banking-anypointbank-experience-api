@@ -2,7 +2,6 @@
 
 <mule xmlns:file="http://www.mulesoft.org/schema/mule/file"
 	xmlns:java="http://www.mulesoft.org/schema/mule/java"
-	xmlns:banking-aisp-experience-api="http://www.mulesoft.org/schema/mule/banking-aisp-experience-api" 
 	xmlns:banking-authorization-server="http://www.mulesoft.org/schema/mule/banking-authorization-server"
 	xmlns:os="http://www.mulesoft.org/schema/mule/os"
 	xmlns:banking-contact-system-api="http://www.mulesoft.org/schema/mule/banking-contact-system-api" 
@@ -20,7 +19,6 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/banking-contact-system-api http://www.mulesoft.org/schema/mule/banking-contact-system-api/current/mule-banking-contact-system-api.xsd
 http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
 http://www.mulesoft.org/schema/mule/banking-authorization-server http://www.mulesoft.org/schema/mule/banking-authorization-server/current/mule-banking-authorization-server.xsd
-http://www.mulesoft.org/schema/mule/banking-aisp-experience-api http://www.mulesoft.org/schema/mule/banking-aisp-experience-api/current/mule-banking-aisp-experience-api.xsd
 http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd
 http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
 
@@ -91,7 +89,7 @@ output application/java
 payload.email]]></ee:set-variable>
 					</ee:variables>
 				</ee:transform>
-				<banking-contact-system-api:update-customer-contact doc:name="Call Salesforce system API PUT Contact" doc:id="ff008dba-2e66-4e29-b3fe-956f7d1b30bc" config-ref="Banking_Contact_System_API_Config" email="#[vars.userEmail]"/>
+				<banking-contact-system-api:update-customer-contact doc:name="Call Salesforce system API PUT Contact" doc:id="ff008dba-2e66-4e29-b3fe-956f7d1b30bc" email="#[vars.userEmail]" config-ref="Banking_Contact_System_API_Config"/>
 			</route>
 		</scatter-gather>
 	</flow>
@@ -104,7 +102,7 @@ payload.email]]></ee:set-variable>
 	"id" : vars.user.sub
 }]]]></http:uri-params>
 		</http:request>
-		<banking-contact-system-api:retrieve-customer-contact doc:name="Call Salesforce system API GET Contact" doc:id="12c8c031-85fc-4714-ac46-1ae5563f1bb7" config-ref="Banking_Contact_System_API_Config" email="#[vars.userData.email]"/>
+		<banking-contact-system-api:retrieve-customer-contact doc:name="Call Salesforce system API GET Contact" doc:id="12c8c031-85fc-4714-ac46-1ae5563f1bb7" email="#[vars.userData.email]" config-ref="Banking_Contact_System_API_Config"/>
 		<ee:transform doc:name="Create JSON user info response" doc:id="a13af45d-fc71-482b-927c-e13b26823484" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0
@@ -209,7 +207,6 @@ output application/json
 				<banking-contact-system-api:create-customer-contact doc:name="Call Salesforce system API POST Contact" doc:id="d282b5ca-c21f-46dd-a9d2-321824912e13" config-ref="Banking_Contact_System_API_Config">
 					<banking-contact-system-api:create-customer-contact-request-data ><![CDATA[#[vars.contactSfdc]]]></banking-contact-system-api:create-customer-contact-request-data>
 				</banking-contact-system-api:create-customer-contact>
-				<banking-contact-system-api:create-customer-contact doc:name="Create customer contact" doc:id="eaf005b0-609b-4777-a311-027e66dc6b5d" />
 				<ee:transform doc:name="Create JSON response" doc:id="1f01e412-2a1e-423a-8602-d91735f6f8c3" >
 					<ee:message >
 						<ee:set-payload ><![CDATA[%dw 2.0
@@ -519,8 +516,13 @@ var bankVar = read(p("registered.banks"), "application/json")[vars.bankId]
 				<choice doc:name="Does the token exist?" doc:id="0a9c7a1f-bdcb-4d62-bb71-2664e2c1bc70" >
 					<when expression="#[payload]" >
 						<os:retrieve doc:name="Get token" doc:id="1703637d-26f4-4d2d-af51-5d031962cbd7" objectStore="UserToken_Config" target="tokenVar" key="#[vars.usersubBankId]"/>
-
- <banking-aisp-experience-api:retrieve-accounts-transactions doc:name="Get accounts transactions" doc:id="cc41a8c1-e415-4fc1-9044-0e8b8c688516" config-ref="Banking_AISP_Experience_API_Config" authorization='#["Bearer " ++ vars.tokenVar.token]'/>
+							<http:request method="GET" doc:name="Get accounts transactions" doc:id="e67c41ea-5f4a-4b53-91f4-bd796e498cc9" config-ref="HTTP_Bank_AISP_Request_Configuration" path="/transactions">
+											<http:headers ><![CDATA[#[output application/java
+				---
+				{
+					"Authorization" : ("Bearer " ++ vars.tokenVar.token)
+				}]]]></http:headers>
+						</http:request>
 						<ee:transform doc:name="Build output" doc:id="3a8e3b6d-0105-4a9b-af27-4499c4094ace" >
 							<ee:message >
 								<ee:set-payload ><![CDATA[%dw 2.0
@@ -659,10 +661,27 @@ payload]]></ee:set-variable>
 			<when expression="#[payload]">
 				<logger level="INFO" doc:name="Log process" doc:id="1147212c-1058-4fca-9b92-a154b8634e69" message="Getting accounts from bank #[vars.bank.bankId]"/>
 				<os:retrieve doc:name="Get tokenVar" doc:id="fffefecb-ca76-441f-a317-d23a896f8739" key="#[vars.usersubBankId]" objectStore="UserToken_Config" target="tokenVar"/>
-				<banking-aisp-experience-api:retrieve-accounts-information doc:name="Get accounts information" doc:id="a06790c8-c4bb-4861-8910-8eaf85f6bd9f" config-ref="Banking_AISP_Experience_API_Config" target="info" authorization='#["Bearer " ++ vars.tokenVar.token]'/>
-				<banking-aisp-experience-api:retrieve-accounts-balance doc:name="Get accounts balance" doc:id="4e270a0a-8066-4aca-9844-71fb9ceb86fb" config-ref="Banking_AISP_Experience_API_Config" target="balance" authorization='#["Bearer " ++ vars.tokenVar.token]'/>
-				<banking-aisp-experience-api:retrieve-accounts-transactions doc:name="Get accounts transactions" doc:id="ccbf516d-b304-48a3-afc0-b6df782a9f77" config-ref="Banking_AISP_Experience_API_Config" target="transactions" authorization='#["Bearer " ++ vars.tokenVar.token]'/>
-				<ee:transform doc:name="Build account Info" doc:id="07b7e8da-babc-409b-bdcb-6fa78d06f03d">
+				<http:request method="GET" doc:name="Get accounts information" doc:id="af996353-8cf2-465a-be76-4db2dfb1c426" config-ref="HTTP_Bank_AISP_Request_Configuration" path="/info" target="info">
+					<http:headers ><![CDATA[#[output application/java
+---
+{
+	"Authorization" : ("Bearer " ++ vars.tokenVar.token)
+}]]]></http:headers>
+				</http:request>
+				<http:request method="GET" doc:name="Get accounts balance" doc:id="82bbdda3-f21a-495a-aa39-fae6fc898c75" config-ref="HTTP_Bank_AISP_Request_Configuration" path="/balance" target="balance">
+					<http:headers ><![CDATA[#[output application/java
+---
+{
+	"Authorization" : ("Bearer " ++ vars.tokenVar.token)
+}]]]></http:headers>
+				</http:request>
+				<http:request method="GET" doc:name="Get accounts transactions" doc:id="f26ad79e-f6fd-4714-8bf5-e666c7452c10" path="/transactions" config-ref="HTTP_Bank_AISP_Request_Configuration" target="transactions">
+					<http:headers ><![CDATA[#[output application/java
+---
+{
+	"Authorization" : ("Bearer " ++ vars.tokenVar.token)
+}]]]></http:headers>
+				</http:request><ee:transform doc:name="Build account Info" doc:id="07b7e8da-babc-409b-bdcb-6fa78d06f03d">
 					<ee:message>
 						<ee:set-payload><![CDATA[%dw 2.0
 output application/java
