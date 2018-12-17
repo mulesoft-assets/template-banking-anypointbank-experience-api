@@ -85,8 +85,6 @@ Detailed list with examples:
 + keystore.password `pass123!`
 + key.password `pass123!`
 + key.alias `1`
-+ truststore.location `truestore` 
-+ truststore.password `true123`
 
 ####API auto-discovery
 + api.id `123`

@@ -3,7 +3,6 @@
 <mule xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
 	xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
 	xmlns:file="http://www.mulesoft.org/schema/mule/file"
-	xmlns:banking-aisp-experience-api="http://www.mulesoft.org/schema/mule/banking-aisp-experience-api"
 	xmlns:banking-authorization-server="http://www.mulesoft.org/schema/mule/banking-authorization-server" xmlns:os="http://www.mulesoft.org/schema/mule/os"
 	xmlns:banking-contact-system-api="http://www.mulesoft.org/schema/mule/banking-contact-system-api"
 	xmlns:banking-accounts-process-api="http://www.mulesoft.org/schema/mule/banking-accounts-process-api" xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
@@ -15,7 +14,6 @@ http://www.mulesoft.org/schema/mule/banking-accounts-process-api http://www.mule
 http://www.mulesoft.org/schema/mule/banking-contact-system-api http://www.mulesoft.org/schema/mule/banking-contact-system-api/current/mule-banking-contact-system-api.xsd
 http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
 http://www.mulesoft.org/schema/mule/banking-authorization-server http://www.mulesoft.org/schema/mule/banking-authorization-server/current/mule-banking-authorization-server.xsd
-http://www.mulesoft.org/schema/mule/banking-aisp-experience-api http://www.mulesoft.org/schema/mule/banking-aisp-experience-api/current/mule-banking-aisp-experience-api.xsd
 http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
 http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd">
 	
@@ -40,7 +38,6 @@ http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/m
 		<http:request-connection protocol="HTTPS" host="${identity.service.external.host}" port="${identity.service.external.port}" />
 	</http:request-config>
 	<os:object-store name="UserToken_Config" doc:name="Object store" doc:id="108a642f-43c3-4a7d-b6ca-9d8939b60487" config-ref="ObjectStore_Config" persistent="false"/>
-	<banking-aisp-experience-api:config name="Banking_AISP_Experience_API_Config" doc:name="Banking_AISP_Experience_API Config" doc:id="4dda7576-151d-4046-acce-7e9370dac76f" property_host="#[vars.bank.aispBaseURL.host]" property_port="#[vars.bank.aispBaseURL.port]" property_basePath="#[vars.bank.aispBaseURL.path]" property_protocol="HTTPS" property_client-id="#[vars.bank.clientId]" property_client-secret="#[ vars.bank.clientSecret]"/>
 	<configuration-properties doc:name="Configuration properties" doc:id="979162f7-adbe-4e82-8392-89c19ef5f898" file="common.properties" />
 	<configuration-properties doc:name="Configuration properties" doc:id="e2a6e33d-2e15-4b3d-bf54-90e5b49bd1c0" file="mule.${mule.env}.properties" />
 	<os:config name="ObjectStore_Config" doc:name="ObjectStore Config" doc:id="9c48f47c-802d-4da3-86fd-ba364a1eba97" />
@@ -51,6 +48,8 @@ http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/m
         doc:name="Banking Authorization Server Config" doc:id="73239395-1baa-477d-b8bc-0565dc6528b1" property_host="#[vars.bankVar.asBaseURL.host]"
         property_port="#[vars.bankVar.asBaseURL.port]" property_basePath="#[vars.bankVar.asBaseURL.path]" property_protocol="HTTPS"/>
 	<api-gateway:autodiscovery apiId="${api.id}" doc:name="API Autodiscovery" doc:id="beb6530c-2ed4-4d2a-8f7b-3a1b90d8334e" flowRef="Banking_Portal_Experience_API-main" />
-	
+	<http:request-config name="HTTP_Bank_AISP_Request_Configuration" doc:name="HTTP Request configuration" doc:id="b4450e05-9dd6-4d06-b355-7d056b5abfb3" basePath="#[vars.bank.aispBaseURL.path]">
+		<http:request-connection protocol="HTTPS" host="#[vars.bank.aispBaseURL.host]" port="#[vars.bank.aispBaseURL.port]" />
+	</http:request-config>
 		
 </mule>

@@ -1,3 +1,8 @@
+/**
+ * Mule Anypoint Template
+ * Copyright (c) MuleSoft, Inc.
+ * All rights reserved.  http://www.mulesoft.com
+ */
 package org.mule.templates.oauth2;
 
 import org.jose4j.jwt.JwtClaims;
