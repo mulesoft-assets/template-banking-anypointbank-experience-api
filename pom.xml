@@ -7,7 +7,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>template-banking-anypointbank-experience-api</artifactId>
-    <version>2.1.1</version>
+    <version>2.1.2-SNAPSHOT</version>
     <packaging>mule-application</packaging>
     <name>template-banking-anypointbank-experience-api</name>
     <properties>
@@ -107,8 +107,4 @@
             <layout>default</layout>
         </repository>
     </repositories>
-
-  <scm>
-    <tag>v2.1.1</tag>
-  </scm>
 </project>
