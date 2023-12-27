@@ -15,7 +15,7 @@
 
 	<properties>
 		<skip.readme.generation>true</skip.readme.generation>
-		<jose4j.version>0.5.5</jose4j.version>
+		<jose4j.version>0.9.4</jose4j.version>
 	<mule.version>3.8.4</mule.version>
     </properties>
 
